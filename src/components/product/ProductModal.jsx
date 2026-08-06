@@ -30,7 +30,7 @@ export default function ProductModal({ product, onClose, onToggleSave, isSaved }
           {/* Product Image Column */}
           <div className="md:col-span-6 relative aspect-[4/5] bg-neutral-100">
             <img
-              src={product.image}
+              src={product.images?.[0] || product.image}
               alt={product.name}
               className="w-full h-full object-cover"
             />

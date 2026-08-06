@@ -1,5 +1,5 @@
 import React from 'react';
-import { PRODUCTS } from '../../data/productsData';
+import { PRODUCTS } from '../../data/productService';
 import { X, Trash2, MessageSquare, Phone, ArrowRight, ShoppingBag } from 'lucide-react';
 
 export default function SavedDrawer({ isOpen, onClose, savedIds, onToggleSave, onSelectProduct }) {
@@ -66,7 +66,7 @@ export default function SavedDrawer({ isOpen, onClose, savedIds, onToggleSave, o
                 className="flex items-center gap-4 p-3 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-white transition-colors"
               >
                 <img
-                  src={product.image}
+                  src={product.images?.[0] || product.image}
                   alt={product.name}
                   className="w-16 h-20 object-cover rounded-xl shrink-0"
                 />
