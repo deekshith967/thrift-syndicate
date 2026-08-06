@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { GALLERY_ITEMS } from '../data/productsData';
+import { GALLERY_ITEMS } from '../../data/productsData';
 import { Maximize2, X, Sparkles } from 'lucide-react';
-import { InstagramIcon } from './Icons';
+import { InstagramIcon } from '../ui/Icons';
 
 export default function Gallery() {
   const [selectedImage, setSelectedImage] = useState(null);

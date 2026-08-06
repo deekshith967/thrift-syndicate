@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, MapPin, Phone, Menu, X, Heart, ArrowUpRight, Sparkles } from 'lucide-react';
-import { InstagramIcon } from './Icons';
+import { InstagramIcon } from '../ui/Icons';
 
 export default function Navbar({ onOpenCart, savedCount = 0 }) {
   const [isScrolled, setIsScrolled] = useState(false);

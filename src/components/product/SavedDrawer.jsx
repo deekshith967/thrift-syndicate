@@ -1,5 +1,5 @@
 import React from 'react';
-import { PRODUCTS } from '../data/productsData';
+import { PRODUCTS } from '../../data/productsData';
 import { X, Trash2, MessageSquare, Phone, ArrowRight, ShoppingBag } from 'lucide-react';
 
 export default function SavedDrawer({ isOpen, onClose, savedIds, onToggleSave, onSelectProduct }) {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowUp, MapPin, Phone, Sparkles } from 'lucide-react';
-import { InstagramIcon } from './Icons';
+import { InstagramIcon } from '../ui/Icons';
 
 export default function Footer() {
   const scrollToTop = () => {

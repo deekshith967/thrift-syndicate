@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CATEGORIES, PRODUCTS } from '../data/productsData';
+import { CATEGORIES, PRODUCTS } from '../../data/productsData';
 import { Heart, Eye, ArrowRight, Sparkles, Filter, Check } from 'lucide-react';
 
 export default function Collections({ onSelectProduct, onToggleSave, savedIds = [] }) {

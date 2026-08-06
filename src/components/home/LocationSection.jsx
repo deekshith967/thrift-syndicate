@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Phone, Clock, Navigation, Star, ShieldCheck, Copy, Check } from 'lucide-react';
-import { InstagramIcon } from './Icons';
+import { InstagramIcon } from '../ui/Icons';
 
 export default function LocationSection() {
   const [copied, setCopied] = React.useState(false);

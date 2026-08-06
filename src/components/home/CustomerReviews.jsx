@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { REVIEWS } from '../data/productsData';
+import { REVIEWS } from '../../data/productsData';
 import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export default function CustomerReviews() {
