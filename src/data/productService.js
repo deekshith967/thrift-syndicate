@@ -47,6 +47,24 @@ export function normalizeProduct(raw) {
 export const PRODUCTS = RAW_PRODUCTS.map(normalizeProduct);
 
 /**
+ * Find product by ID.
+ */
+export function getProductById(id, products = PRODUCTS) {
+  if (!id) return null;
+  return products.find((p) => String(p.id).toLowerCase() === String(id).toLowerCase()) || null;
+}
+
+/**
+ * Find related products in the same category.
+ */
+export function getRelatedProducts(product, limit = 4, products = PRODUCTS) {
+  if (!product) return [];
+  return products
+    .filter((p) => p.id !== product.id && p.category.toLowerCase() === product.category.toLowerCase())
+    .slice(0, limit);
+}
+
+/**
  * Metadata extractors for filter options.
  */
 export function getProductCategories(products = PRODUCTS) {
