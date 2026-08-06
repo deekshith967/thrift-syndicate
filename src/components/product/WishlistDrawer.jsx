@@ -1,19 +1,19 @@
 import React from 'react';
-import { useProducts } from '../../data/productService';
 import { X, Trash2, MessageSquare, Phone, Heart, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 
-export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggleSave }) {
+export default function WishlistDrawer({ isOpen, onClose }) {
   const { addToCart } = useCart();
-  const products = useProducts();
+  const { wishlistItems, removeFromWishlist } = useWishlist();
 
   if (!isOpen) return null;
 
-  const savedProducts = products.filter(p => savedIds.includes(p.id));
-  const totalPrice = savedProducts.reduce((sum, p) => sum + p.price, 0);
+  const validItems = wishlistItems.filter((i) => !i.isOrphan && i.product);
+  const totalPrice = validItems.reduce((sum, item) => sum + item.product.price, 0);
 
   const handleWhatsAppBatch = () => {
-    const itemNames = savedProducts.map(p => `• ${p.name} (₹${p.price})`).join('\n');
+    const itemNames = validItems.map(i => `• ${i.product.name} (₹${i.product.price})`).join('\n');
     const text = encodeURIComponent(
       `Hi Thrift Syndicate! I have saved the following vintage items to reserve:\n${itemNames}\nTotal Value: ₹${totalPrice}.\nPlease confirm availability at your Daba Gardens store!`
     );
@@ -34,7 +34,7 @@ export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggl
           <div className="flex items-center gap-2">
             <Heart size={20} className="text-rose-500 fill-rose-500" />
             <h3 className="font-display font-extrabold text-xl uppercase tracking-tight text-[#111111]">
-              Saved Wishlist ({savedProducts.length})
+              Saved Wishlist ({validItems.length})
             </h3>
           </div>
           <button
@@ -48,7 +48,7 @@ export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggl
 
         {/* Content List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {savedProducts.length === 0 ? (
+          {validItems.length === 0 ? (
             <div className="text-center py-16 space-y-4">
               <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-400 flex items-center justify-center mx-auto">
                 <Heart size={32} />
@@ -65,9 +65,9 @@ export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggl
               </button>
             </div>
           ) : (
-            savedProducts.map((product) => (
+            validItems.map(({ product, productId }) => (
               <div
-                key={product.id}
+                key={productId}
                 className="flex items-center gap-4 p-3 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-white transition-colors"
               >
                 <img
@@ -83,16 +83,17 @@ export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggl
                   <button
                     onClick={() => {
                       addToCart(product, 1);
+                      removeFromWishlist(productId);
                       onClose();
                     }}
                     className="mt-1.5 text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
                   >
                     <ShoppingBag size={12} />
-                    <span>Add to Cart</span>
+                    <span>Move to Cart</span>
                   </button>
                 </div>
                 <button
-                  onClick={() => onToggleSave(product.id)}
+                  onClick={() => removeFromWishlist(productId)}
                   className="p-2 text-neutral-400 hover:text-rose-500 transition-colors"
                   title="Remove from wishlist"
                 >
@@ -104,7 +105,7 @@ export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggl
         </div>
 
         {/* Footer Summary & WhatsApp CTA */}
-        {savedProducts.length > 0 && (
+        {validItems.length > 0 && (
           <div className="p-6 border-t border-neutral-100 bg-[#F8F8F8] space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-neutral-500 font-medium">Estimated Total Value:</span>

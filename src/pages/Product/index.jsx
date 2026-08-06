@@ -3,6 +3,7 @@ import { useParams, Link, Navigate, useOutletContext } from 'react-router-dom';
 import { useProducts, getProductById, getRelatedProducts } from '../../data/productService';
 import ProductGrid from '../../components/product/ProductGrid';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import {
   Heart,
   Store,
@@ -21,9 +22,8 @@ export default function ProductDetailsPage() {
   const { productId } = useParams();
   const products = useProducts();
   const product = getProductById(productId, products);
-  const context = useOutletContext() || {};
-  const { onSelectProduct, onToggleSave, savedIds = [] } = context;
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const [activeImgIdx, setActiveImgIdx] = useState(0);
 
@@ -32,7 +32,7 @@ export default function ProductDetailsPage() {
     return <Navigate to="/404" replace />;
   }
 
-  const isSaved = savedIds.includes(product.id);
+  const isWishlisted = isInWishlist(product.id);
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
   const activeImage = images[activeImgIdx] || images[0];
 
@@ -227,16 +227,16 @@ export default function ProductDetailsPage() {
                   </a>
 
                   <button
-                    onClick={() => onToggleSave && onToggleSave(product.id)}
+                    onClick={() => toggleWishlist(product.id)}
                     className={`px-6 rounded-2xl border transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider ${
-                      isSaved 
+                      isWishlisted 
                         ? 'bg-rose-500 text-white border-rose-500 shadow-md' 
                         : 'bg-white border-neutral-300 text-neutral-800 hover:border-black'
                     }`}
-                    title={isSaved ? "Saved in Wishlist" : "Save to Wishlist"}
+                    title={isWishlisted ? "Remove from Wishlist" : "Save to Wishlist"}
                   >
-                    <Heart size={18} className={isSaved ? "fill-white" : ""} />
-                    <span>{isSaved ? "Saved" : "Save"}</span>
+                    <Heart size={18} className={isWishlisted ? "fill-white text-white" : ""} />
+                    <span>{isWishlisted ? "Wishlisted" : "Save"}</span>
                   </button>
                 </div>
               </div>
@@ -268,12 +268,7 @@ export default function ProductDetailsPage() {
               </Link>
             </div>
 
-            <ProductGrid
-              products={relatedProducts}
-              onSelectProduct={onSelectProduct}
-              onToggleSave={onToggleSave}
-              savedIds={savedIds}
-            />
+            <ProductGrid products={relatedProducts} />
           </div>
         )}
 

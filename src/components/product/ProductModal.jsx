@@ -1,12 +1,24 @@
 import React from 'react';
 import { X, Heart, ShieldCheck, Truck, Store, Phone, MessageSquare, Check, Sparkles } from 'lucide-react';
+import { useWishlist } from '../../context/WishlistContext';
 
 export default function ProductModal({ product, onClose, onToggleSave, isSaved }) {
+  const { isInWishlist, toggleWishlist } = useWishlist();
+
   if (!product) return null;
+
+  const isWishlisted = isSaved !== undefined ? isSaved : isInWishlist(product.id);
 
   const whatsappMessage = encodeURIComponent(
     `Hi Thrift Syndicate! I would like to reserve/inquire about "${product.name}" (${product.size}) listed for ₹${product.price}.`
   );
+
+  const handleSaveToggle = () => {
+    toggleWishlist(product.id);
+    if (onToggleSave) {
+      onToggleSave(product.id);
+    }
+  };
 
   return (
     <div 
@@ -129,15 +141,15 @@ export default function ProductModal({ product, onClose, onToggleSave, isSaved }
                 </a>
 
                 <button
-                  onClick={() => onToggleSave(product.id)}
+                  onClick={handleSaveToggle}
                   className={`px-4 rounded-xl border transition-colors flex items-center justify-center ${
-                    isSaved 
+                    isWishlisted 
                       ? 'bg-rose-500 text-white border-rose-500' 
                       : 'border-neutral-300 text-neutral-700 hover:border-black'
                   }`}
-                  title={isSaved ? "Saved" : "Save Item"}
+                  title={isWishlisted ? "Saved" : "Save Item"}
                 >
-                  <Heart size={16} className={isSaved ? "fill-white" : ""} />
+                  <Heart size={16} className={isWishlisted ? "fill-white text-white" : ""} />
                 </button>
               </div>
             </div>

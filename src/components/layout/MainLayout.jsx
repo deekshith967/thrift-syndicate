@@ -7,30 +7,25 @@ import ProductModal from '../product/ProductModal';
 import SavedDrawer from '../product/SavedDrawer'; // Cart Drawer
 import WishlistDrawer from '../product/WishlistDrawer';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 
 export default function MainLayout() {
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [savedIds, setSavedIds] = useState(['ts-001']);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
   const { isCartOpen, closeCart, openCart } = useCart();
+  const { wishlistCount, toggleWishlist, isInWishlist } = useWishlist();
 
-  const toggleSave = (productId) => {
-    setSavedIds((prev) => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId) 
-        : [...prev, productId]
-    );
+  const handleToggleSave = (productId) => {
+    toggleWishlist(productId);
   };
 
   const outletContext = {
     selectedProduct,
     setSelectedProduct,
     onSelectProduct: (product) => setSelectedProduct(product),
-    savedIds,
-    setSavedIds,
-    onToggleSave: toggleSave,
-    toggleSave,
+    onToggleSave: handleToggleSave,
+    toggleSave: handleToggleSave,
     isWishlistOpen,
     setIsWishlistOpen,
     onOpenWishlist: () => setIsWishlistOpen(true),
@@ -43,7 +38,7 @@ export default function MainLayout() {
       <Navbar 
         onOpenCart={openCart} 
         onOpenWishlist={() => setIsWishlistOpen(true)}
-        savedCount={savedIds.length} 
+        savedCount={wishlistCount} 
       />
 
       {/* Main Page Content via React Router */}
@@ -58,15 +53,15 @@ export default function MainLayout() {
       <FloatingWidgets 
         onOpenCart={openCart}
         onOpenWishlist={() => setIsWishlistOpen(true)}
-        savedCount={savedIds.length} 
+        savedCount={wishlistCount} 
       />
 
       {/* Interactive Product Quick View Modal */}
       <ProductModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        onToggleSave={toggleSave}
-        isSaved={selectedProduct ? savedIds.includes(selectedProduct.id) : false}
+        onToggleSave={handleToggleSave}
+        isSaved={selectedProduct ? isInWishlist(selectedProduct.id) : false}
       />
 
       {/* Shopping Cart Drawer */}
@@ -79,8 +74,7 @@ export default function MainLayout() {
       <WishlistDrawer
         isOpen={isWishlistOpen}
         onClose={() => setIsWishlistOpen(false)}
-        savedIds={savedIds}
-        onToggleSave={toggleSave}
+        onToggleSave={handleToggleSave}
       />
     </div>
   );

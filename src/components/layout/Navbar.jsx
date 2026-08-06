@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag, MapPin, Phone, Menu, X, Heart, ArrowUpRight, Sparkles } from 'lucide-react';
 import { InstagramIcon } from '../ui/Icons';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 
-export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
+export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, openCart } = useCart();
+  const { wishlistCount } = useWishlist();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +26,7 @@ export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Collections', href: '/collections' },
+    { name: 'Wishlist', href: '/wishlist' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
@@ -80,9 +83,14 @@ export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
               <Link
                 key={link.name}
                 to={link.href}
-                className="text-sm font-medium text-neutral-700 hover:text-[#111111] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-[#111111] hover:after:w-full after:transition-all"
+                className="text-sm font-medium text-neutral-700 hover:text-[#111111] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-[#111111] hover:after:w-full after:transition-all flex items-center gap-1.5"
               >
-                {link.name}
+                <span>{link.name}</span>
+                {link.name === 'Wishlist' && wishlistCount > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
@@ -99,19 +107,19 @@ export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
               <InstagramIcon size={20} />
             </a>
 
-            {/* Wishlist Button */}
-            <button
-              onClick={onOpenWishlist}
-              className="relative p-2 text-neutral-700 hover:text-[#111111] hover:bg-neutral-100 rounded-full transition-all"
+            {/* Wishlist Link Button */}
+            <Link
+              to="/wishlist"
+              className="relative p-2 text-neutral-700 hover:text-[#111111] hover:bg-neutral-100 rounded-full transition-all block"
               title="Saved Wishlist"
             >
-              <Heart size={20} />
-              {savedCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {savedCount}
+              <Heart size={20} className={wishlistCount > 0 ? "fill-rose-500 text-rose-500" : ""} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                  {wishlistCount}
                 </span>
               )}
-            </button>
+            </Link>
 
             {/* Shopping Cart Button */}
             <button
@@ -150,18 +158,18 @@ export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
                 </span>
               )}
             </button>
-            <button
-              onClick={onOpenWishlist}
-              className="relative p-2 text-neutral-800"
+            <Link
+              to="/wishlist"
+              className="relative p-2 text-neutral-800 block"
               title="Wishlist"
             >
-              <Heart size={22} />
-              {savedCount > 0 && (
+              <Heart size={22} className={wishlistCount > 0 ? "fill-rose-500 text-rose-500" : ""} />
+              {wishlistCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {savedCount}
+                  {wishlistCount}
                 </span>
               )}
-            </button>
+            </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-neutral-900 rounded-md focus:outline-none"
@@ -182,9 +190,14 @@ export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
                   key={link.name}
                   to={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-base font-semibold text-neutral-800 hover:text-black py-1"
+                  className="text-base font-semibold text-neutral-800 hover:text-black py-1 flex items-center justify-between"
                 >
-                  {link.name}
+                  <span>{link.name}</span>
+                  {link.name === 'Wishlist' && wishlistCount > 0 && (
+                    <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {wishlistCount}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>

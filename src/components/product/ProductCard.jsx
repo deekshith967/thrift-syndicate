@@ -1,16 +1,28 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Eye, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Heart, Eye, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 
-export default function ProductCard({ product, onSelectProduct, onToggleSave, isSaved }) {
+export default function ProductCard({ product, onSelectProduct, onToggleSave }) {
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   if (!product) return null;
 
+  const isWishlisted = isInWishlist(product.id);
   const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : product.image;
   const badgeText = product.badge || (product.featured ? "Featured" : product.newArrival ? "New Arrival" : null);
   const productUrl = `/products/${product.id}`;
+
+  const handleHeartClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(product.id);
+    if (onToggleSave) {
+      onToggleSave(product.id);
+    }
+  };
 
   return (
     <div className="group bg-white rounded-2xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col hover:-translate-y-1">
@@ -41,20 +53,22 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave, is
 
         {/* Top Right Save / Heart Button */}
         <button
-          onClick={() => onToggleSave && onToggleSave(product.id)}
+          type="button"
+          onClick={handleHeartClick}
           className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md transition-all z-10 shadow-md ${
-            isSaved
-              ? 'bg-rose-500 text-white'
+            isWishlisted
+              ? 'bg-rose-500 text-white shadow-rose-200 scale-105'
               : 'bg-white/90 text-neutral-700 hover:bg-white hover:text-rose-500'
           }`}
-          title={isSaved ? "Saved in Wishlist" : "Save to Wishlist"}
+          title={isWishlisted ? "Remove from Wishlist" : "Save to Wishlist"}
         >
-          <Heart size={16} className={isSaved ? "fill-white" : ""} />
+          <Heart size={16} className={isWishlisted ? "fill-white text-white" : ""} />
         </button>
 
         {/* Hover Quick Action Overlay Buttons */}
         <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 z-10">
           <button
+            type="button"
             onClick={() => addToCart(product, 1)}
             className="flex-1 bg-[#111111] hover:bg-black text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg transition-transform hover:scale-[1.02]"
             title="Add item to Cart"
@@ -63,6 +77,7 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave, is
             <span>Add to Cart</span>
           </button>
           <button
+            type="button"
             onClick={() => onSelectProduct && onSelectProduct(product)}
             className="p-2.5 bg-white/95 hover:bg-white text-neutral-900 rounded-xl text-xs font-bold shadow-lg transition-transform hover:scale-[1.02]"
             title="Quick View"
@@ -102,6 +117,7 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave, is
           </div>
 
           <button
+            type="button"
             onClick={() => addToCart(product, 1)}
             className="bg-neutral-100 hover:bg-[#111111] hover:text-white text-neutral-800 p-2.5 rounded-xl transition-colors"
             title="Add to Cart"

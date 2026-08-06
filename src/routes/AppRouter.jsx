@@ -5,6 +5,7 @@ import Home from '../pages/Home';
 import CollectionsPage from '../pages/Collections';
 import ProductDetailsPage from '../pages/Product';
 import CheckoutPage from '../pages/Checkout';
+import WishlistPage from '../pages/Wishlist';
 import AdminDashboard from '../pages/Admin';
 import AdminLoginPage from '../pages/Admin/Login';
 import ProtectedRoute from './ProtectedRoute';
@@ -21,6 +22,7 @@ export default function AppRouter() {
           <Route path="collections" element={<CollectionsPage />} />
           <Route path="products/:productId" element={<ProductDetailsPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="wishlist" element={<WishlistPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
           <Route
             path="admin"
