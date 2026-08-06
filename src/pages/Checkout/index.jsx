@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { createOrder } from '../../data/orderService';
+import { getProductById } from '../../data/productService';
 import {
   ShoppingBag,
   Trash2,
@@ -98,11 +99,15 @@ export default function CheckoutPage() {
       })
     };
 
-    const savedOrder = createOrder(orderPayload);
-
-    setOrderDetails(savedOrder);
-    setIsOrderSubmitted(true);
-    clearCart();
+    try {
+      const savedOrder = createOrder(orderPayload);
+      setOrderDetails(savedOrder);
+      setIsOrderSubmitted(true);
+      clearCart();
+    } catch (err) {
+      console.error('Order creation failed:', err);
+      setFormError('Could not save your order. Please try again or clear storage.');
+    }
   };
 
   // If Order is Placed: Render Professional Order Success Page
@@ -168,18 +173,22 @@ export default function CheckoutPage() {
             <div className="text-left space-y-3">
               <h4 className="font-display font-bold text-xs uppercase tracking-wider text-neutral-500">Ordered Items ({orderDetails.items.length})</h4>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {orderDetails.items.map(({ product, quantity }) => (
-                  <div key={product.id} className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-xl text-xs">
-                    <div className="flex items-center gap-3">
-                      <img src={product.image || product.images?.[0]} alt={product.name} className="w-10 h-12 object-cover rounded-lg" />
-                      <div>
-                        <p className="font-bold text-neutral-900">{product.name}</p>
-                        <p className="text-[10px] text-neutral-500">Qty: {quantity} • Size: {product.size}</p>
+                {orderDetails.items.map(({ product, quantity }) => {
+                  const activeProd = getProductById(product.id);
+                  const displayImg = activeProd?.images?.[0] || activeProd?.image || product.image || '/images/hero.png';
+                  return (
+                    <div key={product.id} className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-xl text-xs">
+                      <div className="flex items-center gap-3">
+                        <img src={displayImg} alt={product.name} className="w-10 h-12 object-cover rounded-lg" />
+                        <div>
+                          <p className="font-bold text-neutral-900">{product.name}</p>
+                          <p className="text-[10px] text-neutral-500">Qty: {quantity} • Size: {product.size}</p>
+                        </div>
                       </div>
+                      <span className="font-bold text-neutral-900">₹{(product.price * quantity).toLocaleString()}</span>
                     </div>
-                    <span className="font-bold text-neutral-900">₹{(product.price * quantity).toLocaleString()}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

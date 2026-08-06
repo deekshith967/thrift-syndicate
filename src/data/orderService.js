@@ -85,9 +85,42 @@ function loadPersistedOrders() {
 
 function persistOrders() {
   try {
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(mutableOrders));
+    const jsonString = JSON.stringify(mutableOrders);
+    localStorage.setItem(ORDERS_STORAGE_KEY, jsonString);
+
+    // Verify write succeeded
+    const verified = localStorage.getItem(ORDERS_STORAGE_KEY);
+    if (!verified) {
+      throw new Error('localStorage order verification failed.');
+    }
   } catch (err) {
     console.error('Error saving orders to localStorage:', err);
+
+    // Quota Recovery: If quota limit was reached, strip data URLs from all stored orders and retry
+    if (err.name === 'QuotaExceededError' || err.code === 22 || err.number === -2147024882) {
+      mutableOrders = mutableOrders.map((order) => ({
+        ...order,
+        items: (order.items || []).map((item) => ({
+          ...item,
+          product: {
+            ...item.product,
+            image: item.product?.image?.startsWith('data:') ? '/images/hero.png' : item.product?.image,
+          },
+        })),
+      }));
+
+      try {
+        localStorage.removeItem('thrift_syndicate_products_v1');
+        localStorage.removeItem('thrift_syndicate_cart_v1');
+        const retryJson = JSON.stringify(mutableOrders);
+        localStorage.setItem(ORDERS_STORAGE_KEY, retryJson);
+      } catch (retryErr) {
+        console.error('Critical quota error: Unable to write orders to localStorage:', retryErr);
+        throw retryErr;
+      }
+    } else {
+      throw err;
+    }
   }
 }
 
@@ -127,28 +160,76 @@ export function getOrderById(id) {
   return mutableOrders.find((o) => String(o.id).toLowerCase() === String(id).toLowerCase()) || null;
 }
 
+/**
+ * Creates and persists a new order safely with 100% serializable lightweight product primitives.
+ */
 export function createOrder(orderData) {
-  const id = orderData.orderId || `TS-${Math.floor(100000 + Math.random() * 900000)}`;
+  const id = String(orderData.orderId || `TS-${Math.floor(100000 + Math.random() * 900000)}`);
+
+  // Store ONLY lightweight product references without embedding heavy Base64 image payloads
+  const sanitizedItems = (orderData.items || []).map((item) => {
+    const rawProd = item.product || {};
+    let imgStr = typeof rawProd.image === 'string'
+      ? rawProd.image
+      : Array.isArray(rawProd.images) && typeof rawProd.images[0] === 'string'
+        ? rawProd.images[0]
+        : '/images/hero.png';
+
+    // Replace heavy Base64 Data URL with lightweight fallback for JSON persistence.
+    // The actual uploaded image is dynamically resolved via getProductById(productId) during rendering.
+    if (imgStr.startsWith('data:')) {
+      imgStr = '/images/hero.png';
+    }
+
+    return {
+      product: {
+        id: String(rawProd.id || 'ts-000'),
+        name: String(rawProd.name || 'Untitled Vintage Item'),
+        price: Number(rawProd.price) || 0,
+        size: String(rawProd.size || 'Free Size'),
+        category: String(rawProd.category || 'Vintage'),
+        image: imgStr,
+      },
+      quantity: Number(item.quantity) || 1,
+    };
+  });
+
+  const sanitizedCustomer = {
+    fullName: String(orderData.customer?.fullName || ''),
+    phone: String(orderData.customer?.phone || ''),
+    email: String(orderData.customer?.email || ''),
+    address: String(orderData.customer?.address || ''),
+    city: String(orderData.customer?.city || 'Visakhapatnam'),
+    state: String(orderData.customer?.state || 'Andhra Pradesh'),
+    pincode: String(orderData.customer?.pincode || '530020'),
+  };
+
   const newOrder = {
     id: id,
-    customer: orderData.customer,
-    items: orderData.items,
+    customer: sanitizedCustomer,
+    items: sanitizedItems,
     subtotal: Number(orderData.subtotal) || 0,
     deliveryFee: Number(orderData.deliveryFee) || 0,
     total: Number(orderData.total) || Number(orderData.subtotal) || 0,
-    paymentMethod: orderData.paymentMethod || "cod",
-    status: orderData.status || "Pending",
-    date: orderData.date || new Date().toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    paymentMethod: String(orderData.paymentMethod || 'cod'),
+    status: String(orderData.status || 'Pending'),
+    date: String(
+      orderData.date ||
+        new Date().toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+    ),
   };
 
   mutableOrders = [newOrder, ...mutableOrders];
+
+  // Guarantee persistence to localStorage before notifying subscribers or returning success
   persistOrders();
+
   notifySubscribers();
   return newOrder;
 }
@@ -159,7 +240,7 @@ export function updateOrderStatus(orderId, newStatus) {
 
   mutableOrders[index] = {
     ...mutableOrders[index],
-    status: newStatus
+    status: String(newStatus)
   };
   persistOrders();
   notifySubscribers();

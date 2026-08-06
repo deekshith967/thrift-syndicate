@@ -6,7 +6,8 @@ import {
   updateProduct,
   deleteProduct,
   getProductCategories,
-  getFilteredProducts
+  getFilteredProducts,
+  getProductById
 } from '../../data/productService';
 import {
   useOrders,
@@ -733,21 +734,28 @@ export default function AdminDashboard() {
                 </h4>
 
                 <div className="space-y-2">
-                  {selectedOrder.items.map(({ product, quantity }) => (
-                    <div key={product.id} className="flex items-center justify-between p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200">
-                      <div className="flex items-center gap-3">
-                        <img src={product.image || product.images?.[0]} alt={product.name} className="w-12 h-14 object-cover rounded-xl border border-neutral-200 shrink-0" />
-                        <div>
-                          <p className="font-display font-bold text-xs text-neutral-900">{product.name}</p>
-                          <span className="text-[10px] text-neutral-500">Size: {product.size} • Qty: {quantity}</span>
+                  {selectedOrder.items.map(({ product = {}, quantity = 1 }, idx) => {
+                    const activeProd = product.id ? getProductById(product.id, productList) : null;
+                    const displayImg = activeProd?.images?.[0] || activeProd?.image || (product.image && !product.image.startsWith('data:') ? product.image : null) || '/images/hero.png';
+                    const itemName = activeProd?.name || product.name || 'Vintage Item';
+                    const itemSize = activeProd?.size || product.size || 'Free Size';
+                    const itemPrice = Number(activeProd?.price ?? product.price ?? 0);
+                    return (
+                      <div key={product.id || idx} className="flex items-center justify-between p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200">
+                        <div className="flex items-center gap-3">
+                          <img src={displayImg} alt={itemName} className="w-12 h-14 object-cover rounded-xl border border-neutral-200 shrink-0" />
+                          <div>
+                            <p className="font-display font-bold text-xs text-neutral-900">{itemName}</p>
+                            <span className="text-[10px] text-neutral-500">Size: {itemSize} • Qty: {quantity}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-display font-black text-xs text-neutral-900">₹{(itemPrice * quantity).toLocaleString()}</p>
+                          <span className="text-[10px] text-neutral-400 font-mono">₹{itemPrice.toLocaleString()} each</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-display font-black text-xs text-neutral-900">₹{(product.price * quantity).toLocaleString()}</p>
-                        <span className="text-[10px] text-neutral-400 font-mono">₹{product.price.toLocaleString()} each</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

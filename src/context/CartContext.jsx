@@ -11,7 +11,9 @@ export function CartProvider({ children }) {
   const [rawCartItems, setRawCartItems] = useState(() => {
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (err) {
       console.error('Error loading cart from localStorage:', err);
       return [];
@@ -20,7 +22,7 @@ export function CartProvider({ children }) {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Sync raw cart state to localStorage
+  // Sync lightweight raw cart state (product IDs & quantities only) to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(rawCartItems));
@@ -29,15 +31,16 @@ export function CartProvider({ children }) {
     }
   }, [rawCartItems]);
 
-  // Dynamically map cart items against current products (Single Source of Truth)
+  // Dynamically map cart items against current products catalog (Single Source of Truth)
   const cartItems = useMemo(() => {
     return rawCartItems
       .map((item) => {
-        const currentProduct = getProductById(item.product.id, products);
+        const targetId = String(item.productId || item.product?.id || '');
+        const currentProduct = getProductById(targetId, products);
         if (!currentProduct) return null; // Remove if product was deleted in admin
         return {
-          ...item,
           product: currentProduct,
+          quantity: Number(item.quantity) || 1,
         };
       })
       .filter(Boolean);
@@ -45,33 +48,42 @@ export function CartProvider({ children }) {
 
   const addToCart = (product, quantity = 1) => {
     if (!product || !product.id) return;
+    const targetId = String(product.id);
     setRawCartItems((prevItems) => {
-      const existingIdx = prevItems.findIndex((item) => item.product.id === product.id);
+      const existingIdx = prevItems.findIndex(
+        (item) => String(item.productId || item.product?.id || '') === targetId
+      );
       if (existingIdx > -1) {
         const updated = [...prevItems];
         updated[existingIdx] = {
-          ...updated[existingIdx],
+          productId: targetId,
           quantity: updated[existingIdx].quantity + quantity,
         };
         return updated;
       }
-      return [...prevItems, { product, quantity }];
+      return [...prevItems, { productId: targetId, quantity }];
     });
     setIsCartOpen(true);
   };
 
   const removeFromCart = (productId) => {
-    setRawCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
+    const targetId = String(productId);
+    setRawCartItems((prevItems) =>
+      prevItems.filter((item) => String(item.productId || item.product?.id || '') !== targetId)
+    );
   };
 
   const updateQuantity = (productId, quantity) => {
+    const targetId = String(productId);
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(targetId);
       return;
     }
     setRawCartItems((prevItems) =>
       prevItems.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        String(item.productId || item.product?.id || '') === targetId
+          ? { productId: targetId, quantity }
+          : item
       )
     );
   };

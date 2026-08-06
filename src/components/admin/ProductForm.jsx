@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Sparkles } from 'lucide-react';
+import ImageUpload from './ImageUpload';
 
 export default function ProductForm({ initialProduct = null, onSubmit, onClose }) {
   const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
     if (!formData.brand.trim()) newErrors.brand = 'Brand is required.';
     if (!formData.size.trim()) newErrors.size = 'Size is required.';
     if (!formData.condition.trim()) newErrors.condition = 'Condition is required.';
-    if (!formData.image.trim()) newErrors.image = 'Image URL is required.';
+    if (!formData.image.trim()) newErrors.image = 'Product image is required.';
     if (!formData.description.trim()) newErrors.description = 'Description is required.';
 
     setErrors(newErrors);
@@ -75,6 +76,13 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 max-h-[75vh] overflow-y-auto">
           
+          {/* Image Upload Component with Instant Preview */}
+          <ImageUpload
+            value={formData.image}
+            onChange={(base64Url) => handleChange({ target: { name: 'image', value: base64Url } })}
+            error={errors.image}
+          />
+
           {/* Product Name */}
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase text-neutral-700">Product Name *</label>
@@ -194,22 +202,6 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
               placeholder="e.g. 9.5/10 Pristine Thrift Condition"
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:ring-2 focus:ring-[#111111] focus:outline-none"
             />
-          </div>
-
-          {/* Image URL */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold uppercase text-neutral-700">Image Path / URL *</label>
-            <input
-              type="text"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              placeholder="e.g. /images/jackets.png"
-              className={`w-full bg-neutral-50 border rounded-xl px-3.5 py-2.5 text-xs font-medium focus:ring-2 focus:ring-[#111111] focus:outline-none ${
-                errors.image ? 'border-rose-500' : 'border-neutral-200'
-              }`}
-            />
-            {errors.image && <p className="text-[11px] text-rose-500 font-semibold">{errors.image}</p>}
           </div>
 
           {/* Description */}
