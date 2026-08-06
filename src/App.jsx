@@ -1,6 +1,6 @@
 import React from 'react';
-import Home from './pages/Home';
+import AppRouter from './routes/AppRouter';
 
 export default function App() {
-  return <Home />;
+  return <AppRouter />;
 }

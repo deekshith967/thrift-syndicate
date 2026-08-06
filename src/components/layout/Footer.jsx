@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowUp, MapPin, Phone, Sparkles } from 'lucide-react';
 import { InstagramIcon } from '../ui/Icons';
 
@@ -15,14 +16,14 @@ export default function Footer() {
           
           {/* Logo & Info */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <div className="bg-white text-black p-2 rounded-md">
                 <Sparkles size={20} />
               </div>
               <span className="font-display font-extrabold text-2xl tracking-tighter uppercase">
                 THRIFT<span className="text-neutral-500 font-light ml-1">SYNDICATE</span>
               </span>
-            </div>
+            </Link>
 
             <p className="text-neutral-400 text-sm max-w-sm leading-relaxed">
               Curated vintage & thrift clothing store in Visakhapatnam. Specializing in handpicked jackets, graphic tees, oversized streetwear, and 1-of-1 fashion pieces.
@@ -55,22 +56,16 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-neutral-300 font-medium">
               <li>
-                <a href="#collections" className="hover:text-white transition-colors">Collections</a>
+                <Link to="/collections" className="hover:text-white transition-colors">Collections</Link>
               </li>
               <li>
-                <a href="#about" className="hover:text-white transition-colors">About Us</a>
+                <Link to="/about" className="hover:text-white transition-colors">About Us</Link>
               </li>
               <li>
-                <a href="#why-us" className="hover:text-white transition-colors">Why Choose Us</a>
+                <Link to="/contact" className="hover:text-white transition-colors">Contact & Directions</Link>
               </li>
               <li>
-                <a href="#reviews" className="hover:text-white transition-colors">Customer Reviews</a>
-              </li>
-              <li>
-                <a href="#gallery" className="hover:text-white transition-colors">Store Gallery</a>
-              </li>
-              <li>
-                <a href="#location" className="hover:text-white transition-colors">Store Location & Directions</a>
+                <Link to="/" className="hover:text-white transition-colors">Home Landing</Link>
               </li>
             </ul>
           </div>

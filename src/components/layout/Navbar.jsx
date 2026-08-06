@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ShoppingBag, MapPin, Phone, Menu, X, Heart, ArrowUpRight, Sparkles } from 'lucide-react';
 import { InstagramIcon } from '../ui/Icons';
 
@@ -19,12 +20,10 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
   }, []);
 
   const navLinks = [
-    { name: 'Collections', href: '#collections' },
-    { name: 'About', href: '#about' },
-    { name: 'Why Us', href: '#why-us' },
-    { name: 'Reviews', href: '#reviews' },
-    { name: 'Gallery', href: '#gallery' },
-    { name: 'Location', href: '#location' },
+    { name: 'Home', href: '/' },
+    { name: 'Collections', href: '/collections' },
+    { name: 'About', href: '/about' },
+    { name: 'Contact', href: '/contact' },
   ];
 
   return (
@@ -59,7 +58,7 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
         <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
           
           {/* Logo */}
-          <a href="#" className="group flex items-center gap-2">
+          <Link to="/" className="group flex items-center gap-2">
             <div className="bg-[#111111] text-white p-2 rounded-md transition-transform group-hover:scale-105">
               <Sparkles size={20} className="text-white" />
             </div>
@@ -71,18 +70,18 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
                 Premium Vintage • Vizag
               </span>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop Nav Links */}
           <div className="hidden lg:flex items-center space-x-8">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 className="text-sm font-medium text-neutral-700 hover:text-[#111111] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-[#111111] hover:after:w-full after:transition-all"
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -111,13 +110,13 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
               )}
             </button>
 
-            <a
-              href="#location"
+            <Link
+              to="/contact"
               className="hidden md:inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
             >
               <span>Visit Store</span>
               <ArrowUpRight size={14} />
-            </a>
+            </Link>
           </div>
 
           {/* Mobile Hamburger Toggle */}
@@ -149,26 +148,26 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
           <div className="sm:hidden bg-white border-b border-neutral-200 px-6 py-6 space-y-4 shadow-xl animate-fade-in">
             <div className="flex flex-col space-y-3 pb-4 border-b border-neutral-100">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.name}
-                  href={link.href}
+                  to={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-semibold text-neutral-800 hover:text-black py-1"
                 >
                   {link.name}
-                </a>
+                </Link>
               ))}
             </div>
 
             <div className="pt-2 flex flex-col space-y-3">
-              <a
-                href="#location"
+              <Link
+                to="/contact"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full bg-[#111111] text-white text-center py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
               >
                 <span>Visit Store in Daba Gardens</span>
                 <ArrowUpRight size={16} />
-              </a>
+              </Link>
               <a
                 href="tel:+919703989808"
                 className="w-full border border-neutral-300 text-neutral-800 text-center py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2"
