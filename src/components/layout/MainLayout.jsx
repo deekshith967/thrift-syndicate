@@ -4,12 +4,16 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import FloatingWidgets from '../common/FloatingWidgets';
 import ProductModal from '../product/ProductModal';
-import SavedDrawer from '../product/SavedDrawer';
+import SavedDrawer from '../product/SavedDrawer'; // Cart Drawer
+import WishlistDrawer from '../product/WishlistDrawer';
+import { useCart } from '../../context/CartContext';
 
 export default function MainLayout() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [savedIds, setSavedIds] = useState(['ts-001']);
-  const [isSavedDrawerOpen, setIsSavedDrawerOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+
+  const { isCartOpen, closeCart, openCart } = useCart();
 
   const toggleSave = (productId) => {
     setSavedIds((prev) => 
@@ -27,16 +31,18 @@ export default function MainLayout() {
     setSavedIds,
     onToggleSave: toggleSave,
     toggleSave,
-    isSavedDrawerOpen,
-    setIsSavedDrawerOpen,
-    onOpenCart: () => setIsSavedDrawerOpen(true),
+    isWishlistOpen,
+    setIsWishlistOpen,
+    onOpenWishlist: () => setIsWishlistOpen(true),
+    onOpenCart: openCart,
   };
 
   return (
     <div className="min-h-screen bg-white text-[#111111] selection:bg-[#111111] selection:text-white font-sans">
       {/* Sticky Header Navbar */}
       <Navbar 
-        onOpenCart={() => setIsSavedDrawerOpen(true)} 
+        onOpenCart={openCart} 
+        onOpenWishlist={() => setIsWishlistOpen(true)}
         savedCount={savedIds.length} 
       />
 
@@ -50,7 +56,8 @@ export default function MainLayout() {
 
       {/* Sticky Mobile Bar & WhatsApp Floating Action */}
       <FloatingWidgets 
-        onOpenCart={() => setIsSavedDrawerOpen(true)} 
+        onOpenCart={openCart}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
         savedCount={savedIds.length} 
       />
 
@@ -62,16 +69,18 @@ export default function MainLayout() {
         isSaved={selectedProduct ? savedIds.includes(selectedProduct.id) : false}
       />
 
-      {/* Saved Wishlist Drawer */}
+      {/* Shopping Cart Drawer */}
       <SavedDrawer
-        isOpen={isSavedDrawerOpen}
-        onClose={() => setIsSavedDrawerOpen(false)}
+        isOpen={isCartOpen}
+        onClose={closeCart}
+      />
+
+      {/* Saved Wishlist Drawer */}
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
         savedIds={savedIds}
         onToggleSave={toggleSave}
-        onSelectProduct={(product) => {
-          setIsSavedDrawerOpen(false);
-          setSelectedProduct(product);
-        }}
       />
     </div>
   );

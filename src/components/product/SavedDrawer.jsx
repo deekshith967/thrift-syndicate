@@ -1,25 +1,35 @@
 import React from 'react';
-import { PRODUCTS } from '../../data/productService';
-import { X, Trash2, MessageSquare, Phone, ArrowRight, ShoppingBag } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
+import { X, Trash2, MessageSquare, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export default function SavedDrawer({ isOpen, onClose, savedIds, onToggleSave, onSelectProduct }) {
+export default function SavedDrawer({ isOpen, onClose }) {
+  const { cartItems, cartCount, subtotal, updateQuantity, removeFromCart, closeCart, clearCart } = useCart();
+  const navigate = useNavigate();
+
+  const handleClose = onClose || closeCart;
+
   if (!isOpen) return null;
 
-  const savedProducts = PRODUCTS.filter(p => savedIds.includes(p.id));
-  const totalPrice = savedProducts.reduce((sum, p) => sum + p.price, 0);
-
-  const handleWhatsAppBatch = () => {
-    const itemNames = savedProducts.map(p => `• ${p.name} (₹${p.price})`).join('\n');
+  const handleCheckout = () => {
+    const itemLines = cartItems
+      .map((item) => `• ${item.product.name} (Qty: ${item.quantity}) - ₹${(item.product.price * item.quantity).toLocaleString()}`)
+      .join('\n');
     const text = encodeURIComponent(
-      `Hi Thrift Syndicate! I have saved the following vintage items to reserve:\n${itemNames}\nTotal Value: ₹${totalPrice}.\nPlease confirm availability at your Daba Gardens store!`
+      `Hi Thrift Syndicate! I would like to place an order for the following items:\n${itemLines}\n\nSubtotal: ₹${subtotal.toLocaleString()}.\nPlease confirm stock & delivery details!`
     );
     window.open(`https://wa.me/919703989808?text=${text}`, '_blank');
+  };
+
+  const handleContinueShopping = () => {
+    handleClose();
+    navigate('/collections');
   };
 
   return (
     <div 
       className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex justify-end"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div 
         className="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-fade-in"
@@ -27,90 +37,138 @@ export default function SavedDrawer({ isOpen, onClose, savedIds, onToggleSave, o
       >
         {/* Header */}
         <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingBag size={20} className="text-neutral-900" />
-            <h3 className="font-display font-extrabold text-xl uppercase tracking-tight text-[#111111]">
-              Saved Wishlist ({savedProducts.length})
-            </h3>
+          <div className="flex items-center gap-2.5">
+            <div className="bg-[#111111] text-white p-2 rounded-xl">
+              <ShoppingBag size={18} />
+            </div>
+            <div>
+              <h3 className="font-display font-extrabold text-lg uppercase tracking-tight text-[#111111]">
+                Shopping Cart
+              </h3>
+              <span className="text-[11px] font-semibold text-neutral-400">
+                {cartCount} {cartCount === 1 ? 'item' : 'items'} selected
+              </span>
+            </div>
           </div>
+
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-full hover:bg-neutral-100 text-neutral-600 transition-colors"
+            aria-label="Close cart"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Content List */}
+        {/* Cart Item List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {savedProducts.length === 0 ? (
+          {cartItems.length === 0 ? (
             <div className="text-center py-16 space-y-4">
               <div className="w-16 h-16 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center mx-auto">
                 <ShoppingBag size={32} />
               </div>
-              <h4 className="font-display font-bold text-lg text-neutral-800">Your Wishlist is Empty</h4>
+              <h4 className="font-display font-bold text-lg text-neutral-800">Your Shopping Cart is Empty</h4>
               <p className="text-xs text-neutral-500 max-w-xs mx-auto">
-                Click the heart icon on any vintage item to save it for quick reservation or in-store pickup.
+                Explore our handpicked vintage jackets, graphic tees, and streetwear to add items to your cart.
               </p>
               <button
-                onClick={onClose}
-                className="bg-[#111111] text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider"
+                onClick={handleContinueShopping}
+                className="bg-[#111111] hover:bg-black text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-all"
               >
                 Browse Collections
               </button>
             </div>
           ) : (
-            savedProducts.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center gap-4 p-3 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-white transition-colors"
-              >
-                <img
-                  src={product.images?.[0] || product.image}
-                  alt={product.name}
-                  className="w-16 h-20 object-cover rounded-xl shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-neutral-400">{product.category}</span>
-                  <h4 className="font-display font-bold text-sm text-[#111111] truncate">{product.name}</h4>
-                  <p className="text-xs font-bold text-neutral-900 mt-1">₹{product.price.toLocaleString()}</p>
-                </div>
-                <button
-                  onClick={() => onToggleSave(product.id)}
-                  className="p-2 text-neutral-400 hover:text-rose-500 transition-colors"
-                  title="Remove"
+            cartItems.map(({ product, quantity }) => {
+              const imageUrl = product.images?.[0] || product.image || "/images/hero.png";
+              return (
+                <div
+                  key={product.id}
+                  className="flex items-center gap-4 p-3.5 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-white transition-colors"
                 >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))
+                  {/* Item Image */}
+                  <img
+                    src={imageUrl}
+                    alt={product.name}
+                    className="w-16 h-20 object-cover rounded-xl shrink-0 border border-neutral-200"
+                  />
+
+                  {/* Details & Controls */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] uppercase font-bold text-neutral-400">
+                      <span>{product.category}</span>
+                      <span>{product.size}</span>
+                    </div>
+                    <h4 className="font-display font-bold text-sm text-[#111111] truncate">{product.name}</h4>
+                    
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-xs font-black text-neutral-900">
+                        ₹{(product.price * quantity).toLocaleString()}
+                      </p>
+
+                      {/* Quantity Selector (- qty +) */}
+                      <div className="flex items-center border border-neutral-300 rounded-lg bg-white overflow-hidden">
+                        <button
+                          onClick={() => updateQuantity(product.id, quantity - 1)}
+                          className="px-2 py-1 text-neutral-600 hover:bg-neutral-100 hover:text-black transition-colors"
+                          title="Decrease quantity"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="px-2 text-xs font-bold text-neutral-900 min-w-[20px] text-center">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(product.id, quantity + 1)}
+                          className="px-2 py-1 text-neutral-600 hover:bg-neutral-100 hover:text-black transition-colors"
+                          title="Increase quantity"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Remove Button */}
+                  <button
+                    onClick={() => removeFromCart(product.id)}
+                    className="p-2 text-neutral-400 hover:text-rose-500 transition-colors"
+                    title="Remove item"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
 
-        {/* Footer Summary & WhatsApp CTA */}
-        {savedProducts.length > 0 && (
+        {/* Footer Summary & Checkout Actions */}
+        {cartItems.length > 0 && (
           <div className="p-6 border-t border-neutral-100 bg-[#F8F8F8] space-y-4">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-neutral-500 font-medium">Estimated Total Value:</span>
-              <span className="font-display font-black text-xl text-[#111111]">₹{totalPrice.toLocaleString()}</span>
+              <span className="text-neutral-500 font-medium">Subtotal Amount:</span>
+              <span className="font-display font-black text-2xl text-[#111111]">
+                ₹{subtotal.toLocaleString()}
+              </span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <button
-                onClick={handleWhatsAppBatch}
+                onClick={handleCheckout}
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
               >
                 <MessageSquare size={16} />
-                <span>Reserve Saved Items via WhatsApp</span>
+                <span>Proceed to WhatsApp Checkout</span>
               </button>
 
-              <a
-                href="tel:+919703989808"
-                className="w-full border border-neutral-900 text-neutral-900 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-center"
+              <button
+                onClick={handleContinueShopping}
+                className="w-full border border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-center transition-colors"
               >
-                <Phone size={14} />
-                <span>Call Store (+91 97039 89808)</span>
-              </a>
+                <span>Continue Shopping</span>
+                <ArrowRight size={14} />
+              </button>
             </div>
           </div>
         )}

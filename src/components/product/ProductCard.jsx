@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Eye, ArrowRight } from 'lucide-react';
+import { Heart, Eye, ShoppingBag, ArrowRight } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 export default function ProductCard({ product, onSelectProduct, onToggleSave, isSaved }) {
+  const { addToCart } = useCart();
+
   if (!product) return null;
 
   const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : product.image;
@@ -49,14 +52,22 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave, is
           <Heart size={16} className={isSaved ? "fill-white" : ""} />
         </button>
 
-        {/* Hover Quick Action overlay button */}
-        <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 z-10">
+        {/* Hover Quick Action Overlay Buttons */}
+        <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 z-10">
+          <button
+            onClick={() => addToCart(product, 1)}
+            className="flex-1 bg-[#111111] hover:bg-black text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg transition-transform hover:scale-[1.02]"
+            title="Add item to Cart"
+          >
+            <ShoppingBag size={14} />
+            <span>Add to Cart</span>
+          </button>
           <button
             onClick={() => onSelectProduct && onSelectProduct(product)}
-            className="w-full bg-white/95 hover:bg-white text-neutral-900 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-[1.02]"
+            className="p-2.5 bg-white/95 hover:bg-white text-neutral-900 rounded-xl text-xs font-bold shadow-lg transition-transform hover:scale-[1.02]"
+            title="Quick View"
           >
             <Eye size={14} />
-            <span>Quick View & Details</span>
           </button>
         </div>
       </div>
@@ -90,13 +101,13 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave, is
             <p className="text-[10px] text-emerald-600 font-semibold uppercase">In-Store / Delivery</p>
           </div>
 
-          <Link
-            to={productUrl}
+          <button
+            onClick={() => addToCart(product, 1)}
             className="bg-neutral-100 hover:bg-[#111111] hover:text-white text-neutral-800 p-2.5 rounded-xl transition-colors"
-            title="View Details & Reserve"
+            title="Add to Cart"
           >
-            <ArrowRight size={16} />
-          </Link>
+            <ShoppingBag size={16} />
+          </button>
         </div>
       </div>
     </div>

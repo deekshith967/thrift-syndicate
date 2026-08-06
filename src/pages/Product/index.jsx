@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, Navigate, useOutletContext } from 'react-router-dom';
 import { getProductById, getRelatedProducts } from '../../data/productService';
 import ProductGrid from '../../components/product/ProductGrid';
+import { useCart } from '../../context/CartContext';
 import {
   Heart,
   Store,
@@ -11,8 +12,7 @@ import {
   Star,
   ChevronRight,
   ShieldCheck,
-  Tag,
-  Shirt,
+  ShoppingBag,
   Sparkles,
   ArrowLeft
 } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function ProductDetailsPage() {
   const product = getProductById(productId);
   const context = useOutletContext() || {};
   const { onSelectProduct, onToggleSave, savedIds = [] } = context;
+  const { addToCart } = useCart();
 
   const [activeImgIdx, setActiveImgIdx] = useState(0);
 
@@ -59,7 +60,7 @@ export default function ProductDetailsPage() {
           <span className="text-neutral-900 font-bold truncate max-w-xs">{product.name}</span>
         </nav>
 
-        {/* 2. Main Product Details View (Reusing ProductModal layout & aesthetic) */}
+        {/* 2. Main Product Details View */}
         <div className="bg-[#F8F8F8] border border-neutral-200/90 rounded-3xl overflow-hidden shadow-lg p-6 sm:p-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             
@@ -195,13 +196,21 @@ export default function ProductDetailsPage() {
 
               </div>
 
-              {/* Action Buttons: Reserve & Wishlist */}
+              {/* Action Buttons: Add to Cart, Reserve & Wishlist */}
               <div className="space-y-3 pt-4 border-t border-neutral-200">
+                <button
+                  onClick={() => addToCart(product, 1)}
+                  className="w-full bg-[#111111] hover:bg-black text-white py-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all hover:shadow-lg"
+                >
+                  <ShoppingBag size={18} />
+                  <span>Add to Shopping Cart</span>
+                </button>
+
                 <a
                   href={`https://wa.me/919703989808?text=${whatsappMessage}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all hover:shadow-lg"
+                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all hover:shadow-lg"
                 >
                   <MessageSquare size={18} />
                   <span>Reserve Piece via WhatsApp</span>

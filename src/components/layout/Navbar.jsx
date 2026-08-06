@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, MapPin, Phone, Menu, X, Heart, ArrowUpRight, Sparkles } from 'lucide-react';
 import { InstagramIcon } from '../ui/Icons';
+import { useCart } from '../../context/CartContext';
 
-export default function Navbar({ onOpenCart, savedCount = 0 }) {
+export default function Navbar({ onOpenWishlist, savedCount = 0 }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { cartCount, openCart } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,7 +88,7 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
           </div>
 
           {/* Action CTA Buttons */}
-          <div className="hidden sm:flex items-center space-x-4">
+          <div className="hidden sm:flex items-center space-x-3">
             <a 
               href="https://instagram.com" 
               target="_blank" 
@@ -97,15 +99,30 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
               <InstagramIcon size={20} />
             </a>
 
+            {/* Wishlist Button */}
             <button
-              onClick={onOpenCart}
+              onClick={onOpenWishlist}
               className="relative p-2 text-neutral-700 hover:text-[#111111] hover:bg-neutral-100 rounded-full transition-all"
-              title="Saved Items / Reserved"
+              title="Saved Wishlist"
             >
               <Heart size={20} />
               {savedCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#111111] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {savedCount}
+                </span>
+              )}
+            </button>
+
+            {/* Shopping Cart Button */}
+            <button
+              onClick={openCart}
+              className="relative p-2 text-neutral-900 bg-neutral-100 hover:bg-[#111111] hover:text-white rounded-full transition-all"
+              title="Shopping Cart"
+            >
+              <ShoppingBag size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#111111] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce border-2 border-white">
+                  {cartCount}
                 </span>
               )}
             </button>
@@ -119,15 +136,28 @@ export default function Navbar({ onOpenCart, savedCount = 0 }) {
             </Link>
           </div>
 
-          {/* Mobile Hamburger Toggle */}
-          <div className="flex items-center space-x-3 sm:hidden">
+          {/* Mobile Hamburger & Actions */}
+          <div className="flex items-center space-x-2 sm:hidden">
             <button
-              onClick={onOpenCart}
+              onClick={openCart}
+              className="relative p-2 text-neutral-900"
+              title="Shopping Cart"
+            >
+              <ShoppingBag size={22} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#111111] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={onOpenWishlist}
               className="relative p-2 text-neutral-800"
+              title="Wishlist"
             >
               <Heart size={22} />
               {savedCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#111111] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {savedCount}
                 </span>
               )}
