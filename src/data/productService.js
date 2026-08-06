@@ -47,14 +47,51 @@ export function normalizeProduct(raw) {
 export const PRODUCTS = RAW_PRODUCTS.map(normalizeProduct);
 
 /**
+ * Metadata extractors for filter options.
+ */
+export function getProductCategories(products = PRODUCTS) {
+  const set = new Set(products.map(p => p.category).filter(Boolean));
+  return ["All", ...Array.from(set)];
+}
+
+export function getProductBrands(products = PRODUCTS) {
+  const set = new Set(products.map(p => p.brand).filter(Boolean));
+  return ["All", ...Array.from(set)];
+}
+
+export function getProductSizes(products = PRODUCTS) {
+  const set = new Set(products.map(p => p.size).filter(Boolean));
+  return ["All", ...Array.from(set)];
+}
+
+export function getProductConditions(products = PRODUCTS) {
+  const set = new Set(products.map(p => p.condition).filter(Boolean));
+  return ["All", ...Array.from(set)];
+}
+
+export function getPriceBounds(products = PRODUCTS) {
+  if (!products || products.length === 0) return { minPrice: 0, maxPrice: 10000 };
+  const prices = products.map(p => p.price);
+  return {
+    minPrice: Math.min(...prices),
+    maxPrice: Math.max(...prices)
+  };
+}
+
+/**
  * Filter, search, sort, and paginate products.
  * Prepares the codebase for seamless future backend integration.
  */
 export function getFilteredProducts(products = PRODUCTS, options = {}) {
   const {
     category = "All",
+    brand = "All",
+    size = "All",
+    condition = "All",
+    minPrice = 0,
+    maxPrice = Infinity,
     search = "",
-    sortBy = "default", // 'price-asc' | 'price-desc' | 'rating' | 'discount' | 'newest'
+    sortBy = "newest", // 'newest' | 'price-asc' | 'price-desc' | 'rating' | 'discount' | 'default'
     inStockOnly = false,
     page = 1,
     limit = 0, // 0 = no pagination limit
@@ -67,12 +104,35 @@ export function getFilteredProducts(products = PRODUCTS, options = {}) {
     result = result.filter((p) => p.category.toLowerCase() === category.toLowerCase());
   }
 
-  // In stock filter
+  // Brand filter
+  if (brand && brand !== "All") {
+    result = result.filter((p) => p.brand.toLowerCase() === brand.toLowerCase());
+  }
+
+  // Size filter
+  if (size && size !== "All") {
+    result = result.filter((p) => p.size.toLowerCase() === size.toLowerCase());
+  }
+
+  // Condition filter
+  if (condition && condition !== "All") {
+    result = result.filter((p) => p.condition.toLowerCase().includes(condition.toLowerCase()));
+  }
+
+  // Price Range filter
+  if (minPrice > 0) {
+    result = result.filter((p) => p.price >= minPrice);
+  }
+  if (maxPrice < Infinity && maxPrice > 0) {
+    result = result.filter((p) => p.price <= maxPrice);
+  }
+
+  // In Stock filter
   if (inStockOnly) {
     result = result.filter((p) => p.inStock);
   }
 
-  // Search filter
+  // Live Search filter
   if (search && search.trim() !== "") {
     const query = search.toLowerCase().trim();
     result = result.filter(
@@ -82,7 +142,8 @@ export function getFilteredProducts(products = PRODUCTS, options = {}) {
         p.category.toLowerCase().includes(query) ||
         p.brand.toLowerCase().includes(query) ||
         (p.subcategory && p.subcategory.toLowerCase().includes(query)) ||
-        (p.color && p.color.toLowerCase().includes(query))
+        (p.color && p.color.toLowerCase().includes(query)) ||
+        (p.size && p.size.toLowerCase().includes(query))
     );
   }
 
@@ -99,7 +160,7 @@ export function getFilteredProducts(products = PRODUCTS, options = {}) {
     result.sort((a, b) => (b.newArrival ? 1 : 0) - (a.newArrival ? 1 : 0));
   }
 
-  // Pagination
+  // Pagination support
   const total = result.length;
   if (limit > 0) {
     const startIndex = (page - 1) * limit;
