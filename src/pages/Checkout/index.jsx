@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { createOrder } from '../../data/orderService';
 import {
   ShoppingBag,
   Trash2,
@@ -68,15 +69,26 @@ export default function CheckoutPage() {
       return;
     }
 
-    const orderId = `TS-${Math.floor(100000 + Math.random() * 900000)}`;
-    const newOrder = {
-      orderId,
-      items: [...cartItems],
+    const generatedId = `TS-${Math.floor(100000 + Math.random() * 900000)}`;
+    const orderPayload = {
+      orderId: generatedId,
+      items: cartItems.map(item => ({
+        product: {
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          size: item.product.size,
+          category: item.product.category,
+          image: item.product.images?.[0] || item.product.image
+        },
+        quantity: item.quantity
+      })),
       subtotal,
       deliveryFee,
       total: grandTotal,
       customer: { ...formData },
       paymentMethod,
+      status: 'Pending',
       date: new Date().toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -86,7 +98,9 @@ export default function CheckoutPage() {
       })
     };
 
-    setOrderDetails(newOrder);
+    const savedOrder = createOrder(orderPayload);
+
+    setOrderDetails(savedOrder);
     setIsOrderSubmitted(true);
     clearCart();
   };
@@ -94,7 +108,7 @@ export default function CheckoutPage() {
   // If Order is Placed: Render Professional Order Success Page
   if (isOrderSubmitted && orderDetails) {
     const whatsappMessage = encodeURIComponent(
-      `Hi Thrift Syndicate! I have placed Order #${orderDetails.orderId} for ₹${orderDetails.total.toLocaleString()}.\nCustomer: ${orderDetails.customer.fullName} (${orderDetails.customer.phone}).\nPlease confirm delivery/pickup!`
+      `Hi Thrift Syndicate! I have placed Order #${orderDetails.id} for ₹${orderDetails.total.toLocaleString()}.\nCustomer: ${orderDetails.customer.fullName} (${orderDetails.customer.phone}).\nPlease confirm delivery/pickup!`
     );
 
     return (
@@ -110,13 +124,13 @@ export default function CheckoutPage() {
             {/* Header */}
             <div className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                ✓ Order Confirmed
+                ✓ Order Confirmed & Saved
               </span>
               <h1 className="font-display font-black text-3xl sm:text-4xl uppercase text-[#111111] tracking-tight">
                 Thank You For Your Order!
               </h1>
               <p className="text-sm text-neutral-600">
-                Your vintage order has been recorded. We will contact you shortly regarding delivery or store pickup in Daba Gardens, Vizag.
+                Your order has been saved in our system. We will contact you shortly regarding delivery or store pickup in Daba Gardens, Vizag.
               </p>
             </div>
 
@@ -124,7 +138,7 @@ export default function CheckoutPage() {
             <div className="bg-[#111111] text-white p-4 rounded-2xl flex items-center justify-between text-left">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Order Reference</span>
-                <p className="font-display font-extrabold text-xl font-mono text-emerald-400">#{orderDetails.orderId}</p>
+                <p className="font-display font-extrabold text-xl font-mono text-emerald-400">#{orderDetails.id}</p>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Total Amount</span>
@@ -142,11 +156,11 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-1">
-                <span className="font-bold uppercase text-neutral-400 text-[10px]">Payment Method</span>
+                <span className="font-bold uppercase text-neutral-400 text-[10px]">Payment Method & Status</span>
                 <p className="font-bold text-neutral-900 uppercase">
                   {orderDetails.paymentMethod === 'cod' ? 'Cash on Delivery / Pickup' : orderDetails.paymentMethod === 'upi' ? 'UPI Instant Payment' : 'Card Payment'}
                 </p>
-                <p className="text-neutral-500 pt-1">Status: <strong className="text-emerald-700">Pending Confirmation</strong></p>
+                <p className="text-neutral-500 pt-1">Status: <strong className="text-amber-600 uppercase font-bold">{orderDetails.status}</strong></p>
               </div>
             </div>
 
@@ -157,7 +171,7 @@ export default function CheckoutPage() {
                 {orderDetails.items.map(({ product, quantity }) => (
                   <div key={product.id} className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-xl text-xs">
                     <div className="flex items-center gap-3">
-                      <img src={product.images?.[0] || product.image} alt={product.name} className="w-10 h-12 object-cover rounded-lg" />
+                      <img src={product.image || product.images?.[0]} alt={product.name} className="w-10 h-12 object-cover rounded-lg" />
                       <div>
                         <p className="font-bold text-neutral-900">{product.name}</p>
                         <p className="text-[10px] text-neutral-500">Qty: {quantity} • Size: {product.size}</p>
