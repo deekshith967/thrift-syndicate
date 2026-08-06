@@ -1,17 +1,17 @@
 import React from 'react';
 import { useCart } from '../../context/CartContext';
-import { X, Trash2, MessageSquare, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, Trash2, MessageSquare, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function SavedDrawer({ isOpen, onClose }) {
-  const { cartItems, cartCount, subtotal, updateQuantity, removeFromCart, closeCart, clearCart } = useCart();
+  const { cartItems, cartCount, subtotal, updateQuantity, removeFromCart, closeCart } = useCart();
   const navigate = useNavigate();
 
   const handleClose = onClose || closeCart;
 
   if (!isOpen) return null;
 
-  const handleCheckout = () => {
+  const handleWhatsAppCheckout = () => {
     const itemLines = cartItems
       .map((item) => `• ${item.product.name} (Qty: ${item.quantity}) - ₹${(item.product.price * item.quantity).toLocaleString()}`)
       .join('\n');
@@ -19,6 +19,11 @@ export default function SavedDrawer({ isOpen, onClose }) {
       `Hi Thrift Syndicate! I would like to place an order for the following items:\n${itemLines}\n\nSubtotal: ₹${subtotal.toLocaleString()}.\nPlease confirm stock & delivery details!`
     );
     window.open(`https://wa.me/919703989808?text=${text}`, '_blank');
+  };
+
+  const handleGoToCheckoutPage = () => {
+    handleClose();
+    navigate('/checkout');
   };
 
   const handleContinueShopping = () => {
@@ -145,29 +150,29 @@ export default function SavedDrawer({ isOpen, onClose }) {
 
         {/* Footer Summary & Checkout Actions */}
         {cartItems.length > 0 && (
-          <div className="p-6 border-t border-neutral-100 bg-[#F8F8F8] space-y-4">
-            <div className="flex items-center justify-between text-sm">
+          <div className="p-6 border-t border-neutral-100 bg-[#F8F8F8] space-y-3">
+            <div className="flex items-center justify-between text-sm pb-1">
               <span className="text-neutral-500 font-medium">Subtotal Amount:</span>
               <span className="font-display font-black text-2xl text-[#111111]">
                 ₹{subtotal.toLocaleString()}
               </span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <button
-                onClick={handleCheckout}
-                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
+                onClick={handleGoToCheckoutPage}
+                className="w-full bg-[#111111] hover:bg-black text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
               >
-                <MessageSquare size={16} />
-                <span>Proceed to WhatsApp Checkout</span>
+                <ShieldCheck size={16} />
+                <span>Proceed to Order Checkout</span>
               </button>
 
               <button
-                onClick={handleContinueShopping}
-                className="w-full border border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-center transition-colors"
+                onClick={handleWhatsAppCheckout}
+                className="w-full border border-emerald-700 text-emerald-800 hover:bg-emerald-50 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-center transition-colors"
               >
-                <span>Continue Shopping</span>
-                <ArrowRight size={14} />
+                <MessageSquare size={16} />
+                <span>Quick WhatsApp Checkout</span>
               </button>
             </div>
           </div>
