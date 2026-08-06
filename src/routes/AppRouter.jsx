@@ -5,6 +5,7 @@ import Home from '../pages/Home';
 import CollectionsPage from '../pages/Collections';
 import ProductDetailsPage from '../pages/Product';
 import CheckoutPage from '../pages/Checkout';
+import AdminDashboard from '../pages/Admin';
 import AboutPage from '../pages/About';
 import ContactPage from '../pages/Contact';
 import NotFoundPage from '../pages/NotFound';
@@ -18,6 +19,7 @@ export default function AppRouter() {
           <Route path="collections" element={<CollectionsPage />} />
           <Route path="products/:productId" element={<ProductDetailsPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="admin" element={<AdminDashboard />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />

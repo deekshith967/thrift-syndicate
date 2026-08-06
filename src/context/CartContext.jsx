@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { useProducts, getProductById } from '../data/productService';
 
 const CartContext = createContext(null);
 
 const CART_STORAGE_KEY = 'thrift_syndicate_cart_v1';
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState(() => {
+  const products = useProducts();
+
+  const [rawCartItems, setRawCartItems] = useState(() => {
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       return saved ? JSON.parse(saved) : [];
@@ -17,18 +20,32 @@ export function CartProvider({ children }) {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Sync cart state to localStorage
+  // Sync raw cart state to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(rawCartItems));
     } catch (err) {
       console.error('Error saving cart to localStorage:', err);
     }
-  }, [cartItems]);
+  }, [rawCartItems]);
+
+  // Dynamically map cart items against current products (Single Source of Truth)
+  const cartItems = useMemo(() => {
+    return rawCartItems
+      .map((item) => {
+        const currentProduct = getProductById(item.product.id, products);
+        if (!currentProduct) return null; // Remove if product was deleted in admin
+        return {
+          ...item,
+          product: currentProduct,
+        };
+      })
+      .filter(Boolean);
+  }, [rawCartItems, products]);
 
   const addToCart = (product, quantity = 1) => {
     if (!product || !product.id) return;
-    setCartItems((prevItems) => {
+    setRawCartItems((prevItems) => {
       const existingIdx = prevItems.findIndex((item) => item.product.id === product.id);
       if (existingIdx > -1) {
         const updated = [...prevItems];
@@ -44,7 +61,7 @@ export function CartProvider({ children }) {
   };
 
   const removeFromCart = (productId) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
+    setRawCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
   };
 
   const updateQuantity = (productId, quantity) => {
@@ -52,7 +69,7 @@ export function CartProvider({ children }) {
       removeFromCart(productId);
       return;
     }
-    setCartItems((prevItems) =>
+    setRawCartItems((prevItems) =>
       prevItems.map((item) =>
         item.product.id === productId ? { ...item, quantity } : item
       )
@@ -60,7 +77,7 @@ export function CartProvider({ children }) {
   };
 
   const clearCart = () => {
-    setCartItems([]);
+    setRawCartItems([]);
   };
 
   const openCart = () => setIsCartOpen(true);

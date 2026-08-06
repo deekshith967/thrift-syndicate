@@ -1,12 +1,15 @@
+import { useState, useEffect } from 'react';
 import { PRODUCTS as RAW_PRODUCTS } from './productsData';
+
+const PRODUCTS_STORAGE_KEY = 'thrift_syndicate_products_v2';
 
 /**
  * Normalizes a product object to ensure all standard schema fields are present.
  */
 export function normalizeProduct(raw) {
   if (!raw) return null;
-  const price = raw.price || 0;
-  const originalPrice = raw.originalPrice || price;
+  const price = Number(raw.price) || 0;
+  const originalPrice = Number(raw.originalPrice) || price;
   const discount = raw.discount ?? (originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0);
   const images = Array.isArray(raw.images) && raw.images.length > 0 
     ? raw.images 
@@ -15,7 +18,7 @@ export function normalizeProduct(raw) {
       : ["/images/hero.png"];
 
   return {
-    id: raw.id,
+    id: String(raw.id),
     name: raw.name || "Untitled Product",
     price: price,
     originalPrice: originalPrice,
@@ -32,7 +35,7 @@ export function normalizeProduct(raw) {
     featured: raw.featured ?? (raw.badge?.includes("Original") || raw.badge?.includes("Rare")),
     newArrival: raw.newArrival ?? true,
     inStock: raw.inStock ?? true,
-    rating: raw.rating ?? 4.8,
+    rating: Number(raw.rating) || 4.8,
     // Preserved vintage metadata
     badge: raw.badge || "1-of-1 Original",
     era: raw.era || "Vintage Classic",
@@ -42,14 +45,145 @@ export function normalizeProduct(raw) {
 }
 
 /**
- * Normalized list of products.
+ * Load products from localStorage or fall back to raw catalog dataset.
  */
-export const PRODUCTS = RAW_PRODUCTS.map(normalizeProduct);
+function loadPersistedProducts() {
+  try {
+    const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(normalizeProduct);
+      }
+    }
+  } catch (err) {
+    console.error('Error loading products from localStorage:', err);
+  }
+  return RAW_PRODUCTS.map(normalizeProduct);
+}
+
+/**
+ * Save current mutable products array to localStorage.
+ */
+function persistProducts() {
+  try {
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mutableProducts));
+  } catch (err) {
+    console.error('Error saving products to localStorage:', err);
+  }
+}
+
+/**
+ * Mutable list of products for CRUD operations (Single Source of Truth).
+ */
+let mutableProducts = loadPersistedProducts();
+
+export const PRODUCTS = mutableProducts;
+
+/**
+ * Subscriber pattern for reactive state updates across the app.
+ */
+const subscribers = new Set();
+
+export function subscribeToProducts(callback) {
+  subscribers.add(callback);
+  return () => subscribers.delete(callback);
+}
+
+function notifySubscribers() {
+  const currentProducts = getAllProducts();
+  subscribers.forEach((callback) => callback(currentProducts));
+}
+
+/**
+ * Custom React hook to consume reactive product state in components.
+ */
+export function useProducts() {
+  const [products, setProducts] = useState(() => getAllProducts());
+
+  useEffect(() => {
+    const unsubscribe = subscribeToProducts((updatedProducts) => {
+      setProducts(updatedProducts);
+    });
+    return unsubscribe;
+  }, []);
+
+  return products;
+}
+
+export function getAllProducts() {
+  return [...mutableProducts];
+}
+
+/**
+ * Add a new product to catalog.
+ */
+export function addProduct(newProductData) {
+  const nextId = `ts-${String(mutableProducts.length + 1).padStart(3, '0')}`;
+  const raw = {
+    id: nextId,
+    name: newProductData.name,
+    category: newProductData.category || "Vintage Jackets",
+    subcategory: newProductData.subcategory || newProductData.category,
+    price: Number(newProductData.price) || 0,
+    originalPrice: Number(newProductData.originalPrice) || Number(newProductData.price) || 0,
+    size: newProductData.size || "M / L",
+    condition: newProductData.condition || "9.5/10 Pristine Thrift Condition",
+    brand: newProductData.brand || "Thrift Syndicate",
+    badge: newProductData.badge || "New Drop",
+    image: newProductData.image || "/images/jackets.png",
+    images: newProductData.image ? [newProductData.image] : ["/images/jackets.png"],
+    description: newProductData.description || "Handpicked vintage piece in great condition.",
+    inStock: newProductData.inStock !== false,
+    featured: Boolean(newProductData.featured),
+    newArrival: true,
+    rating: 5.0,
+  };
+  const normalized = normalizeProduct(raw);
+  mutableProducts = [normalized, ...mutableProducts];
+  persistProducts();
+  notifySubscribers();
+  return normalized;
+}
+
+/**
+ * Update an existing product by ID.
+ */
+export function updateProduct(id, updatedFields) {
+  const index = mutableProducts.findIndex((p) => String(p.id).toLowerCase() === String(id).toLowerCase());
+  if (index === -1) return null;
+
+  const current = mutableProducts[index];
+  const mergedRaw = {
+    ...current,
+    ...updatedFields,
+    price: Number(updatedFields.price ?? current.price),
+    originalPrice: Number(updatedFields.originalPrice ?? current.originalPrice),
+    image: updatedFields.image || current.image,
+    images: updatedFields.image ? [updatedFields.image] : current.images,
+  };
+
+  const updated = normalizeProduct(mergedRaw);
+  mutableProducts[index] = updated;
+  persistProducts();
+  notifySubscribers();
+  return updated;
+}
+
+/**
+ * Delete a product by ID.
+ */
+export function deleteProduct(id) {
+  mutableProducts = mutableProducts.filter((p) => String(p.id).toLowerCase() !== String(id).toLowerCase());
+  persistProducts();
+  notifySubscribers();
+  return true;
+}
 
 /**
  * Find product by ID.
  */
-export function getProductById(id, products = PRODUCTS) {
+export function getProductById(id, products = mutableProducts) {
   if (!id) return null;
   return products.find((p) => String(p.id).toLowerCase() === String(id).toLowerCase()) || null;
 }
@@ -57,7 +191,7 @@ export function getProductById(id, products = PRODUCTS) {
 /**
  * Find related products in the same category.
  */
-export function getRelatedProducts(product, limit = 4, products = PRODUCTS) {
+export function getRelatedProducts(product, limit = 4, products = mutableProducts) {
   if (!product) return [];
   return products
     .filter((p) => p.id !== product.id && p.category.toLowerCase() === product.category.toLowerCase())
@@ -67,27 +201,27 @@ export function getRelatedProducts(product, limit = 4, products = PRODUCTS) {
 /**
  * Metadata extractors for filter options.
  */
-export function getProductCategories(products = PRODUCTS) {
+export function getProductCategories(products = mutableProducts) {
   const set = new Set(products.map(p => p.category).filter(Boolean));
   return ["All", ...Array.from(set)];
 }
 
-export function getProductBrands(products = PRODUCTS) {
+export function getProductBrands(products = mutableProducts) {
   const set = new Set(products.map(p => p.brand).filter(Boolean));
   return ["All", ...Array.from(set)];
 }
 
-export function getProductSizes(products = PRODUCTS) {
+export function getProductSizes(products = mutableProducts) {
   const set = new Set(products.map(p => p.size).filter(Boolean));
   return ["All", ...Array.from(set)];
 }
 
-export function getProductConditions(products = PRODUCTS) {
+export function getProductConditions(products = mutableProducts) {
   const set = new Set(products.map(p => p.condition).filter(Boolean));
   return ["All", ...Array.from(set)];
 }
 
-export function getPriceBounds(products = PRODUCTS) {
+export function getPriceBounds(products = mutableProducts) {
   if (!products || products.length === 0) return { minPrice: 0, maxPrice: 10000 };
   const prices = products.map(p => p.price);
   return {
@@ -98,9 +232,8 @@ export function getPriceBounds(products = PRODUCTS) {
 
 /**
  * Filter, search, sort, and paginate products.
- * Prepares the codebase for seamless future backend integration.
  */
-export function getFilteredProducts(products = PRODUCTS, options = {}) {
+export function getFilteredProducts(products = mutableProducts, options = {}) {
   const {
     category = "All",
     brand = "All",
@@ -192,5 +325,5 @@ export function getFilteredProducts(products = PRODUCTS, options = {}) {
  * Async API simulator for future backend integration.
  */
 export async function fetchProductsApi(options = {}) {
-  return getFilteredProducts(PRODUCTS, options);
+  return getFilteredProducts(mutableProducts, options);
 }

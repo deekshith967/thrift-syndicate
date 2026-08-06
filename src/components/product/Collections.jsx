@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  PRODUCTS,
+  useProducts,
   getProductCategories,
   getProductBrands,
   getProductSizes,
@@ -13,12 +13,14 @@ import FilterSidebar from './FilterSidebar';
 import { Search, SlidersHorizontal, ArrowUpDown, X, Sparkles, ArrowRight } from 'lucide-react';
 
 export default function Collections({ onSelectProduct, onToggleSave, savedIds = [] }) {
-  // Extract options metadata dynamically
-  const categories = useMemo(() => getProductCategories(PRODUCTS), []);
-  const brands = useMemo(() => getProductBrands(PRODUCTS), []);
-  const sizes = useMemo(() => getProductSizes(PRODUCTS), []);
-  const conditions = useMemo(() => getProductConditions(PRODUCTS), []);
-  const priceBounds = useMemo(() => getPriceBounds(PRODUCTS), []);
+  const products = useProducts();
+
+  // Extract options metadata dynamically from reactive products list
+  const categories = useMemo(() => getProductCategories(products), [products]);
+  const brands = useMemo(() => getProductBrands(products), [products]);
+  const sizes = useMemo(() => getProductSizes(products), [products]);
+  const conditions = useMemo(() => getProductConditions(products), [products]);
+  const priceBounds = useMemo(() => getPriceBounds(products), [products]);
 
   // Filter & Search States
   const [activeCategory, setActiveCategory] = useState("All");
@@ -46,9 +48,9 @@ export default function Collections({ onSelectProduct, onToggleSave, savedIds = 
     return count;
   }, [activeCategory, selectedBrand, selectedSize, selectedCondition, priceRange, priceBounds, inStockOnly, searchQuery]);
 
-  // Filtered & Sorted products using productService
+  // Filtered & Sorted products using reactive productService
   const filteredProducts = useMemo(() => {
-    return getFilteredProducts(PRODUCTS, {
+    return getFilteredProducts(products, {
       category: activeCategory,
       brand: selectedBrand,
       size: selectedSize,
@@ -59,7 +61,7 @@ export default function Collections({ onSelectProduct, onToggleSave, savedIds = 
       search: searchQuery,
       sortBy
     });
-  }, [activeCategory, selectedBrand, selectedSize, selectedCondition, priceRange, inStockOnly, searchQuery, sortBy]);
+  }, [products, activeCategory, selectedBrand, selectedSize, selectedCondition, priceRange, inStockOnly, searchQuery, sortBy]);
 
   const handleResetFilters = () => {
     setActiveCategory("All");

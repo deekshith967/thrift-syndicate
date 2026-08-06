@@ -1,14 +1,15 @@
 import React from 'react';
-import { PRODUCTS } from '../../data/productService';
+import { useProducts } from '../../data/productService';
 import { X, Trash2, MessageSquare, Phone, Heart, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 export default function WishlistDrawer({ isOpen, onClose, savedIds = [], onToggleSave }) {
   const { addToCart } = useCart();
+  const products = useProducts();
 
   if (!isOpen) return null;
 
-  const savedProducts = PRODUCTS.filter(p => savedIds.includes(p.id));
+  const savedProducts = products.filter(p => savedIds.includes(p.id));
   const totalPrice = savedProducts.reduce((sum, p) => sum + p.price, 0);
 
   const handleWhatsAppBatch = () => {

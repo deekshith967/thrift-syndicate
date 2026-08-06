@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link, Navigate, useOutletContext } from 'react-router-dom';
-import { getProductById, getRelatedProducts } from '../../data/productService';
+import { useProducts, getProductById, getRelatedProducts } from '../../data/productService';
 import ProductGrid from '../../components/product/ProductGrid';
 import { useCart } from '../../context/CartContext';
 import {
@@ -19,14 +19,15 @@ import {
 
 export default function ProductDetailsPage() {
   const { productId } = useParams();
-  const product = getProductById(productId);
+  const products = useProducts();
+  const product = getProductById(productId, products);
   const context = useOutletContext() || {};
   const { onSelectProduct, onToggleSave, savedIds = [] } = context;
   const { addToCart } = useCart();
 
   const [activeImgIdx, setActiveImgIdx] = useState(0);
 
-  // If product not found, redirect to 404
+  // If product not found or deleted, redirect to 404
   if (!product) {
     return <Navigate to="/404" replace />;
   }
@@ -35,7 +36,7 @@ export default function ProductDetailsPage() {
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
   const activeImage = images[activeImgIdx] || images[0];
 
-  const relatedProducts = getRelatedProducts(product, 4);
+  const relatedProducts = getRelatedProducts(product, 4, products);
 
   const whatsappMessage = encodeURIComponent(
     `Hi Thrift Syndicate! I would like to reserve/inquire about "${product.name}" (${product.size}) listed for ₹${product.price}.`
