@@ -6,6 +6,8 @@ import CollectionsPage from '../pages/Collections';
 import ProductDetailsPage from '../pages/Product';
 import CheckoutPage from '../pages/Checkout';
 import AdminDashboard from '../pages/Admin';
+import AdminLoginPage from '../pages/Admin/Login';
+import ProtectedRoute from './ProtectedRoute';
 import AboutPage from '../pages/About';
 import ContactPage from '../pages/Contact';
 import NotFoundPage from '../pages/NotFound';
@@ -19,7 +21,15 @@ export default function AppRouter() {
           <Route path="collections" element={<CollectionsPage />} />
           <Route path="products/:productId" element={<ProductDetailsPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/login" element={<AdminLoginPage />} />
+          <Route
+            path="admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />

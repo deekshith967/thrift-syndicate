@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   useProducts,
   addProduct,
@@ -41,10 +42,18 @@ import {
   Mail,
   CreditCard,
   CheckCircle2,
-  MessageSquare
+  MessageSquare,
+  LogOut
 } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login', { replace: true });
+  };
   // Reactive single source of truth product list & orders list
   const productList = useProducts();
   const orderList = useOrders();
@@ -246,11 +255,20 @@ export default function AdminDashboard() {
           </nav>
         </div>
 
-        {/* Back to Store CTA */}
-        <div className="pt-6 border-t border-neutral-800 space-y-3">
+        {/* Back to Store & Logout CTA */}
+        <div className="pt-6 border-t border-neutral-800 space-y-2.5">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xs"
+          >
+            <LogOut size={16} />
+            <span>Sign Out Admin</span>
+          </button>
+
           <Link
             to="/"
-            className="w-full border border-neutral-700 hover:bg-neutral-900 text-neutral-300 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+            className="w-full border border-neutral-700 hover:bg-neutral-900 text-neutral-300 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors block text-center"
           >
             <span>View Public Store</span>
             <ExternalLink size={14} />
