@@ -491,50 +491,317 @@ export default function AdminDashboard() {
 
         {/* Tab View Switcher */}
         {activeTab === 'overview' ? (
-          <div className="bg-white rounded-3xl border border-neutral-200 p-8 space-y-6 shadow-xs">
-            <h3 className="font-display font-bold text-xl uppercase">Quick Store & Orders Summary</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase text-neutral-500">Recent Customer Orders</h4>
-                <div className="space-y-2">
-                  {orderList.slice(0, 4).map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-xs">
-                      <div>
-                        <p className="font-bold text-neutral-900">#{order.id} - {order.customer.fullName}</p>
-                        <p className="text-[10px] text-neutral-500">{order.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadge(order.status)}`}>
-                          {order.status}
-                        </span>
-                        <p className="font-bold text-neutral-900 text-xs mt-0.5">₹{order.total.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
+          <div className="space-y-8">
+            
+            {/* Monthly Revenue Summary & Growth Banner */}
+            <div className="bg-gradient-to-br from-[#111111] to-[#1c1c1c] text-white p-6 sm:p-7 rounded-3xl border border-neutral-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Monthly Revenue Summary</span>
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                    analytics.growthPercentage >= 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                  }`}>
+                    <TrendingUp size={12} className={analytics.growthPercentage >= 0 ? '' : 'rotate-180'} />
+                    {analytics.growthPercentage >= 0 ? `+${analytics.growthPercentage}%` : `${analytics.growthPercentage}%`} MoM Growth
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-4 pt-1">
+                  <p className="font-display font-black text-3xl sm:text-4xl text-white tracking-tight">
+                    ₹{analytics.monthRevenue.toLocaleString()}
+                  </p>
+                  <span className="text-xs text-neutral-400 font-medium">Current Month</span>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase text-neutral-500">Quick Shortcuts</h4>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setActiveTab('orders')}
-                    className="w-full bg-[#111111] text-white p-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-between shadow-sm hover:bg-black transition-all"
-                  >
-                    <span>Manage Orders Table</span>
-                    <ChevronRight size={16} />
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('products')}
-                    className="w-full border border-neutral-300 text-neutral-900 p-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-between hover:bg-neutral-50 transition-colors"
-                  >
-                    <span>Manage Products Catalog</span>
-                    <ChevronRight size={16} />
-                  </button>
+              <div className="flex items-center gap-6 divide-x divide-neutral-800 pt-2 md:pt-0">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Previous Month</p>
+                  <p className="font-display font-bold text-lg text-neutral-200">
+                    ₹{analytics.previousMonthRevenue.toLocaleString()}
+                  </p>
+                </div>
+                <div className="pl-6 space-y-0.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Avg Order Value</p>
+                  <p className="font-display font-bold text-lg text-emerald-400">
+                    ₹{analytics.averageOrderValue.toLocaleString()}
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Charts Row: Monthly Revenue Line Chart & Monthly Orders Bar Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Monthly Revenue Line Chart */}
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display font-black text-base uppercase tracking-tight text-neutral-900">Monthly Revenue Trend</h3>
+                    <p className="text-[11px] text-neutral-500">Revenue performance over the last 6 months</p>
+                  </div>
+                  <div className="bg-emerald-50 text-emerald-800 p-2 rounded-xl border border-emerald-200">
+                    <TrendingUp size={18} />
+                  </div>
+                </div>
+
+                {/* SVG Line Chart */}
+                <div className="w-full pt-2">
+                  {(() => {
+                    const data = analytics.monthlyChartData || [];
+                    const maxRev = Math.max(...data.map(d => d.revenue), 1000);
+                    const width = 460;
+                    const height = 150;
+                    const padX = 35;
+                    const padY = 25;
+                    const stepX = data.length > 1 ? (width - padX * 2) / (data.length - 1) : 0;
+
+                    const points = data.map((d, i) => ({
+                      x: padX + i * stepX,
+                      y: height - padY - (d.revenue / maxRev) * (height - padY * 2),
+                      ...d
+                    }));
+
+                    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                    const areaD = points.length > 0 
+                      ? `${pathD} L ${points[points.length - 1].x} ${height - padY} L ${points[0].x} ${height - padY} Z`
+                      : '';
+
+                    return (
+                      <div className="relative">
+                        <svg viewBox={`0 0 ${width} ${height + 25}`} className="w-full h-44 overflow-visible">
+                          <defs>
+                            <linearGradient id="adminRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
+                              <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Grid Lines */}
+                          {[0, 0.5, 1].map((ratio, idx) => {
+                            const y = padY + ratio * (height - padY * 2);
+                            return (
+                              <line
+                                key={idx}
+                                x1={padX}
+                                y1={y}
+                                x2={width - padX}
+                                y2={y}
+                                stroke="#E5E7EB"
+                                strokeDasharray="4 4"
+                                strokeWidth="1"
+                              />
+                            );
+                          })}
+
+                          {/* Filled Area */}
+                          {areaD && <path d={areaD} fill="url(#adminRevenueGrad)" />}
+
+                          {/* Line */}
+                          {pathD && (
+                            <path
+                              d={pathD}
+                              fill="none"
+                              stroke="#10B981"
+                              strokeWidth="3.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+
+                          {/* Points & Labels */}
+                          {points.map((p, i) => (
+                            <g key={i} className="group">
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r="5"
+                                className="fill-white stroke-emerald-600 stroke-[3] transition-all hover:scale-125 cursor-pointer"
+                              />
+                              <text
+                                x={p.x}
+                                y={Math.max(14, p.y - 10)}
+                                textAnchor="middle"
+                                className="text-[9px] font-mono font-bold fill-neutral-800"
+                              >
+                                {p.revenue > 0 ? `₹${(p.revenue / 1000).toFixed(1)}k` : '₹0'}
+                              </text>
+                              <text
+                                x={p.x}
+                                y={height + 15}
+                                textAnchor="middle"
+                                className="text-[10px] font-bold uppercase fill-neutral-500"
+                              >
+                                {p.shortLabel}
+                              </text>
+                            </g>
+                          ))}
+                        </svg>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Monthly Orders Bar Chart */}
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display font-black text-base uppercase tracking-tight text-neutral-900">Monthly Orders Volume</h3>
+                    <p className="text-[11px] text-neutral-500">Order count distribution over the last 6 months</p>
+                  </div>
+                  <div className="bg-blue-50 text-blue-800 p-2 rounded-xl border border-blue-200">
+                    <BarChart2 size={18} />
+                  </div>
+                </div>
+
+                {/* Bar Chart Container */}
+                <div className="pt-2">
+                  {(() => {
+                    const data = analytics.monthlyChartData || [];
+                    const maxOrders = Math.max(...data.map(d => d.orders), 1);
+
+                    return (
+                      <div className="grid grid-cols-6 gap-2 sm:gap-3 items-end h-44 pt-6 pb-2 border-b border-neutral-200">
+                        {data.map((d, i) => {
+                          const heightPercent = maxOrders > 0 ? Math.max(12, Math.round((d.orders / maxOrders) * 100)) : 12;
+                          return (
+                            <div key={i} className="flex flex-col items-center gap-1.5 h-full justify-end group">
+                              <span className="text-[10px] font-mono font-bold text-neutral-700 transition-transform group-hover:-translate-y-0.5">
+                                {d.orders}
+                              </span>
+                              <div
+                                style={{ height: `${heightPercent}%` }}
+                                className={`w-full max-w-[36px] rounded-t-xl transition-all ${
+                                  i === data.length - 1
+                                    ? 'bg-neutral-900 group-hover:bg-black shadow-xs'
+                                    : 'bg-neutral-300 group-hover:bg-neutral-400'
+                                }`}
+                                title={`${d.fullLabel}: ${d.orders} orders`}
+                              />
+                              <span className="text-[10px] font-bold uppercase text-neutral-500 mt-1">
+                                {d.shortLabel}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Panels Row: Top Selling Products & Recent Sales */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* Top Selling Products Panel (Top 5 ranked by total quantity sold) */}
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <div className="flex items-center gap-2">
+                    <Tag size={18} className="text-neutral-900" />
+                    <h3 className="font-display font-black text-base uppercase tracking-tight text-neutral-900">
+                      Top Selling Products
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Top 5 by Units Sold</span>
+                </div>
+
+                <div className="space-y-3">
+                  {analytics.topSellingProducts.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-neutral-400 font-medium">
+                      No product sales recorded yet. Place orders to see sales ranking.
+                    </div>
+                  ) : (
+                    analytics.topSellingProducts.map((prod, idx) => (
+                      <div
+                        key={prod.id}
+                        className="flex items-center justify-between p-3 rounded-2xl border border-neutral-100 bg-neutral-50/70 hover:bg-neutral-100/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
+                            idx === 0 ? 'bg-amber-400 text-black shadow-xs' : idx === 1 ? 'bg-neutral-300 text-black' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-neutral-200 text-neutral-700'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+                          <img
+                            src={prod.image}
+                            alt={prod.name}
+                            className="w-11 h-12 object-cover rounded-xl border border-neutral-200 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="font-display font-bold text-xs text-neutral-900 truncate">{prod.name}</p>
+                            <p className="text-[10px] text-neutral-500 font-mono">₹{prod.price.toLocaleString()} • {prod.category}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0 pl-3">
+                          <span className="inline-block bg-neutral-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            {prod.totalSold} sold
+                          </span>
+                          <p className="text-[10px] font-mono font-bold text-emerald-700 mt-0.5">
+                            ₹{prod.revenueGenerated.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Recent Sales Panel (Latest 5 orders) */}
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <div className="flex items-center gap-2">
+                    <Clock size={18} className="text-neutral-900" />
+                    <h3 className="font-display font-black text-base uppercase tracking-tight text-neutral-900">
+                      Recent Sales
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('orders')}
+                    className="text-[10px] font-bold uppercase tracking-wider text-neutral-800 hover:text-black hover:underline flex items-center gap-1"
+                  >
+                    <span>View All Orders</span>
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {analytics.recentSales.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-neutral-400 font-medium">
+                      No sales recorded yet.
+                    </div>
+                  ) : (
+                    analytics.recentSales.map((sale) => (
+                      <div
+                        key={sale.id}
+                        className="flex items-center justify-between p-3 rounded-2xl border border-neutral-100 bg-neutral-50/70 hover:bg-neutral-100/80 transition-colors"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-neutral-900">#{sale.id}</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${getStatusBadge(sale.status)}`}>
+                              {sale.status}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-neutral-800">{sale.customerName}</p>
+                          <p className="text-[10px] text-neutral-400">{sale.date} • {sale.itemCount} {sale.itemCount === 1 ? 'item' : 'items'}</p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="font-display font-black text-sm text-[#111111]">
+                            ₹{sale.total.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+
           </div>
         ) : activeTab === 'orders' ? (
           /* Orders Table View */

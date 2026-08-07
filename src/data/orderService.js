@@ -268,7 +268,7 @@ export function deleteOrder(orderId) {
 }
 
 /**
- * Reusable analytics helper to compute revenue and order volume metrics.
+ * Reusable analytics helper to compute revenue, order volume metrics, monthly charts, and product ranking.
  */
 export function calculateOrderAnalytics(orders = []) {
   if (!Array.isArray(orders) || orders.length === 0) {
@@ -276,18 +276,40 @@ export function calculateOrderAnalytics(orders = []) {
       totalRevenue: 0,
       todayRevenue: 0,
       monthRevenue: 0,
+      previousMonthRevenue: 0,
+      growthPercentage: 0,
       totalOrders: 0,
       pendingOrders: 0,
       deliveredOrders: 0,
       cancelledOrders: 0,
       averageOrderValue: 0,
+      monthlyChartData: [],
+      topSellingProducts: [],
+      recentSales: []
     };
   }
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const currentMonth = now.getMonth(); // 0-indexed (0=Jan, 7=Aug)
   const currentDate = now.getDate();
+
+  // Create rolling 6-month array for charts
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthlyMap = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(currentYear, currentMonth - i, 1);
+    const mIdx = d.getMonth();
+    const y = d.getFullYear();
+    monthlyMap.push({
+      monthIndex: mIdx,
+      year: y,
+      shortLabel: monthNames[mIdx],
+      fullLabel: `${monthNames[mIdx]} ${y}`,
+      revenue: 0,
+      orders: 0
+    });
+  }
 
   const parseOrderDate = (dateStr) => {
     if (!dateStr) return null;
@@ -299,11 +321,11 @@ export function calculateOrderAnalytics(orders = []) {
       const d = parseInt(match[1], 10);
       const mStr = match[2];
       const y = parseInt(match[3], 10);
-      const monthMap = {
+      const monthLookup = {
         jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
         jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
       };
-      const m = monthMap[mStr.substring(0, 3).toLowerCase()];
+      const m = monthLookup[mStr.substring(0, 3).toLowerCase()];
       if (m !== undefined) {
         return new Date(y, m, d);
       }
@@ -313,11 +335,11 @@ export function calculateOrderAnalytics(orders = []) {
 
   let totalRevenue = 0;
   let todayRevenue = 0;
-  let monthRevenue = 0;
   let validOrderCount = 0;
   let pendingOrders = 0;
   let deliveredOrders = 0;
   let cancelledOrders = 0;
+  const productSalesMap = {};
 
   orders.forEach((order) => {
     const status = String(order.status || '').toLowerCase();
@@ -333,36 +355,101 @@ export function calculateOrderAnalytics(orders = []) {
 
       const orderDate = parseOrderDate(order.date);
       if (orderDate) {
-        if (
-          orderDate.getFullYear() === currentYear &&
-          orderDate.getMonth() === currentMonth &&
-          orderDate.getDate() === currentDate
-        ) {
+        const oYear = orderDate.getFullYear();
+        const oMonth = orderDate.getMonth();
+        const oDay = orderDate.getDate();
+
+        // Check today's date
+        if (oYear === currentYear && oMonth === currentMonth && oDay === currentDate) {
           todayRevenue += orderTotal;
         }
 
-        if (
-          orderDate.getFullYear() === currentYear &&
-          orderDate.getMonth() === currentMonth
-        ) {
-          monthRevenue += orderTotal;
+        // Add to rolling monthly chart bucket
+        const chartBucket = monthlyMap.find((b) => b.year === oYear && b.monthIndex === oMonth);
+        if (chartBucket) {
+          chartBucket.revenue += orderTotal;
+          chartBucket.orders += 1;
         }
       } else {
-        monthRevenue += orderTotal;
+        // Fallback to current month if date unparseable
+        const currentBucket = monthlyMap[monthlyMap.length - 1];
+        if (currentBucket) {
+          currentBucket.revenue += orderTotal;
+          currentBucket.orders += 1;
+        }
+      }
+
+      // Aggregate product sales ranking
+      if (Array.isArray(order.items)) {
+        order.items.forEach((item) => {
+          const prod = item.product || {};
+          const prodId = String(prod.id || item.productId || 'unknown');
+          const qty = Number(item.quantity) || 1;
+          const price = Number(prod.price) || 0;
+
+          if (!productSalesMap[prodId]) {
+            productSalesMap[prodId] = {
+              id: prodId,
+              name: prod.name || 'Vintage Item',
+              image: prod.image || (Array.isArray(prod.images) ? prod.images[0] : '/images/hero.png'),
+              category: prod.category || 'Vintage',
+              price: price,
+              totalSold: 0,
+              revenueGenerated: 0
+            };
+          }
+          productSalesMap[prodId].totalSold += qty;
+          productSalesMap[prodId].revenueGenerated += price * qty;
+        });
       }
     }
   });
 
   const averageOrderValue = validOrderCount > 0 ? Math.round(totalRevenue / validOrderCount) : 0;
 
+  // Monthly summary & growth
+  const currentMonthBucket = monthlyMap[monthlyMap.length - 1];
+  const previousMonthBucket = monthlyMap[monthlyMap.length - 2];
+  const monthRevenue = currentMonthBucket ? currentMonthBucket.revenue : 0;
+  const previousMonthRevenue = previousMonthBucket ? previousMonthBucket.revenue : 0;
+
+  let growthPercentage = 0;
+  if (previousMonthRevenue > 0) {
+    growthPercentage = Math.round(((monthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100);
+  } else if (monthRevenue > 0) {
+    growthPercentage = 100;
+  }
+
+  // Top 5 selling products ranked by total sold
+  const topSellingProducts = Object.values(productSalesMap)
+    .sort((a, b) => b.totalSold - a.totalSold || b.revenueGenerated - a.revenueGenerated)
+    .slice(0, 5);
+
+  // Latest 5 orders
+  const recentSales = orders.slice(0, 5).map((order) => ({
+    id: order.id,
+    customerName: order.customer?.fullName || 'Customer',
+    total: Number(order.total) || 0,
+    status: order.status || 'Pending',
+    date: order.date || 'Recent',
+    itemCount: Array.isArray(order.items)
+      ? order.items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0)
+      : 1
+  }));
+
   return {
     totalRevenue,
     todayRevenue,
     monthRevenue,
+    previousMonthRevenue,
+    growthPercentage,
     totalOrders: orders.length,
     pendingOrders,
     deliveredOrders,
     cancelledOrders,
     averageOrderValue,
+    monthlyChartData: monthlyMap,
+    topSellingProducts,
+    recentSales
   };
 }
