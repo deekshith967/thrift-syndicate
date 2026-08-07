@@ -266,3 +266,103 @@ export function deleteOrder(orderId) {
   notifySubscribers();
   return true;
 }
+
+/**
+ * Reusable analytics helper to compute revenue and order volume metrics.
+ */
+export function calculateOrderAnalytics(orders = []) {
+  if (!Array.isArray(orders) || orders.length === 0) {
+    return {
+      totalRevenue: 0,
+      todayRevenue: 0,
+      monthRevenue: 0,
+      totalOrders: 0,
+      pendingOrders: 0,
+      deliveredOrders: 0,
+      cancelledOrders: 0,
+      averageOrderValue: 0,
+    };
+  }
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDate = now.getDate();
+
+  const parseOrderDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) return parsed;
+
+    const match = String(dateStr).match(/(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})/);
+    if (match) {
+      const d = parseInt(match[1], 10);
+      const mStr = match[2];
+      const y = parseInt(match[3], 10);
+      const monthMap = {
+        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+      };
+      const m = monthMap[mStr.substring(0, 3).toLowerCase()];
+      if (m !== undefined) {
+        return new Date(y, m, d);
+      }
+    }
+    return null;
+  };
+
+  let totalRevenue = 0;
+  let todayRevenue = 0;
+  let monthRevenue = 0;
+  let validOrderCount = 0;
+  let pendingOrders = 0;
+  let deliveredOrders = 0;
+  let cancelledOrders = 0;
+
+  orders.forEach((order) => {
+    const status = String(order.status || '').toLowerCase();
+    const orderTotal = Number(order.total) || 0;
+
+    if (status === 'pending') pendingOrders++;
+    else if (status === 'delivered') deliveredOrders++;
+    else if (status === 'cancelled') cancelledOrders++;
+
+    if (status !== 'cancelled') {
+      totalRevenue += orderTotal;
+      validOrderCount++;
+
+      const orderDate = parseOrderDate(order.date);
+      if (orderDate) {
+        if (
+          orderDate.getFullYear() === currentYear &&
+          orderDate.getMonth() === currentMonth &&
+          orderDate.getDate() === currentDate
+        ) {
+          todayRevenue += orderTotal;
+        }
+
+        if (
+          orderDate.getFullYear() === currentYear &&
+          orderDate.getMonth() === currentMonth
+        ) {
+          monthRevenue += orderTotal;
+        }
+      } else {
+        monthRevenue += orderTotal;
+      }
+    }
+  });
+
+  const averageOrderValue = validOrderCount > 0 ? Math.round(totalRevenue / validOrderCount) : 0;
+
+  return {
+    totalRevenue,
+    todayRevenue,
+    monthRevenue,
+    totalOrders: orders.length,
+    pendingOrders,
+    deliveredOrders,
+    cancelledOrders,
+    averageOrderValue,
+  };
+}
