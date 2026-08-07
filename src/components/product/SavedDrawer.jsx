@@ -1,10 +1,20 @@
 import React from 'react';
 import { useCart } from '../../context/CartContext';
-import { X, Trash2, MessageSquare, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Trash2, MessageSquare, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function SavedDrawer({ isOpen, onClose }) {
-  const { cartItems, cartCount, subtotal, updateQuantity, removeFromCart, closeCart } = useCart();
+  const {
+    cartItems,
+    cartCount,
+    subtotal,
+    couponDiscount,
+    total,
+    appliedCoupon,
+    updateQuantity,
+    removeFromCart,
+    closeCart
+  } = useCart();
   const navigate = useNavigate();
 
   const handleClose = onClose || closeCart;
@@ -15,8 +25,9 @@ export default function SavedDrawer({ isOpen, onClose }) {
     const itemLines = cartItems
       .map((item) => `• ${item.product.name} (Qty: ${item.quantity}) - ₹${(item.product.price * item.quantity).toLocaleString()}`)
       .join('\n');
+    const couponLine = appliedCoupon ? `\nPromo Code (${appliedCoupon.code}): -₹${couponDiscount.toLocaleString()}` : '';
     const text = encodeURIComponent(
-      `Hi Thrift Syndicate! I would like to place an order for the following items:\n${itemLines}\n\nSubtotal: ₹${subtotal.toLocaleString()}.\nPlease confirm stock & delivery details!`
+      `Hi Thrift Syndicate! I would like to place an order for the following items:\n${itemLines}${couponLine}\n\nTotal Amount: ₹${total.toLocaleString()}.\nPlease confirm stock & delivery details!`
     );
     window.open(`https://wa.me/919703989808?text=${text}`, '_blank');
   };
@@ -151,11 +162,29 @@ export default function SavedDrawer({ isOpen, onClose }) {
         {/* Footer Summary & Checkout Actions */}
         {cartItems.length > 0 && (
           <div className="p-6 border-t border-neutral-100 bg-[#F8F8F8] space-y-3">
-            <div className="flex items-center justify-between text-sm pb-1">
-              <span className="text-neutral-500 font-medium">Subtotal Amount:</span>
-              <span className="font-display font-black text-2xl text-[#111111]">
-                ₹{subtotal.toLocaleString()}
-              </span>
+            
+            <div className="space-y-1.5 text-xs pb-1">
+              <div className="flex items-center justify-between text-neutral-600">
+                <span>Subtotal Amount:</span>
+                <span className="font-bold text-neutral-900">₹{subtotal.toLocaleString()}</span>
+              </div>
+
+              {appliedCoupon && couponDiscount > 0 && (
+                <div className="flex items-center justify-between text-emerald-700 font-bold">
+                  <span className="flex items-center gap-1">
+                    <Tag size={12} />
+                    <span>Promo Discount ({appliedCoupon.code})</span>
+                  </span>
+                  <span>-₹{couponDiscount.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-sm font-black text-[#111111] pt-1.5 border-t border-neutral-200">
+                <span>Est. Order Total:</span>
+                <span className="font-display text-xl text-[#111111]">
+                  ₹{total.toLocaleString()}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-2">

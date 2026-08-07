@@ -209,6 +209,11 @@ export function createOrder(orderData) {
     customer: sanitizedCustomer,
     items: sanitizedItems,
     subtotal: Number(orderData.subtotal) || 0,
+    couponDiscount: Number(orderData.couponDiscount) || 0,
+    appliedCoupon: orderData.appliedCoupon ? {
+      code: String(orderData.appliedCoupon.code || ''),
+      discountAmount: Number(orderData.appliedCoupon.discountAmount) || 0
+    } : null,
     deliveryFee: Number(orderData.deliveryFee) || 0,
     total: Number(orderData.total) || Number(orderData.subtotal) || 0,
     paymentMethod: String(orderData.paymentMethod || 'cod'),

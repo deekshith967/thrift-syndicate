@@ -21,11 +21,30 @@ import {
   MapPin,
   User,
   Phone,
-  Mail
+  Mail,
+  Tag,
+  X,
+  AlertCircle,
+  Percent
 } from 'lucide-react';
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, updateQuantity, removeFromCart, clearCart } = useCart();
+  const {
+    cartItems,
+    subtotal,
+    couponDiscount,
+    netSubtotal,
+    deliveryFee,
+    total,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
+    availableCoupons,
+    updateQuantity,
+    removeFromCart,
+    clearCart
+  } = useCart();
+
   const navigate = useNavigate();
 
   // Customer Information Form State
@@ -42,19 +61,38 @@ export default function CheckoutPage() {
   // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState('cod');
 
+  // Coupon Input State
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [couponFeedback, setCouponFeedback] = useState(null);
+
   // Order Submission State
   const [isOrderSubmitted, setIsOrderSubmitted] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const [formError, setFormError] = useState('');
 
-  // Calculations
-  const deliveryFee = subtotal === 0 ? 0 : subtotal >= 1999 ? 0 : 99;
-  const grandTotal = subtotal + deliveryFee;
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (formError) setFormError('');
+  };
+
+  const handleApplyCouponSubmit = (e, explicitCode = null) => {
+    if (e) e.preventDefault();
+    const code = explicitCode || couponCodeInput;
+    setCouponFeedback(null);
+
+    const res = applyCoupon(code);
+    if (res.valid) {
+      setCouponFeedback({ type: 'success', message: res.message });
+      setCouponCodeInput('');
+    } else {
+      setCouponFeedback({ type: 'error', message: res.error });
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    setCouponFeedback(null);
   };
 
   const handlePlaceOrder = (e) => {
@@ -85,8 +123,13 @@ export default function CheckoutPage() {
         quantity: item.quantity
       })),
       subtotal,
+      couponDiscount,
+      appliedCoupon: appliedCoupon ? {
+        code: appliedCoupon.code,
+        discountAmount: couponDiscount
+      } : null,
       deliveryFee,
-      total: grandTotal,
+      total,
       customer: { ...formData },
       paymentMethod,
       status: 'Pending',
@@ -135,7 +178,7 @@ export default function CheckoutPage() {
                 Thank You For Your Order!
               </h1>
               <p className="text-sm text-neutral-600">
-                Your order has been saved in our system. We will contact you shortly regarding delivery or store pickup in Daba Gardens, Vizag.
+                Your order has been recorded. We will contact you shortly regarding delivery or store pickup in Daba Gardens, Vizag.
               </p>
             </div>
 
@@ -146,7 +189,7 @@ export default function CheckoutPage() {
                 <p className="font-display font-extrabold text-xl font-mono text-emerald-400">#{orderDetails.id}</p>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Total Amount</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Total Amount Paid</span>
                 <p className="font-display font-extrabold text-xl">₹{orderDetails.total.toLocaleString()}</p>
               </div>
             </div>
@@ -161,11 +204,16 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-1">
-                <span className="font-bold uppercase text-neutral-400 text-[10px]">Payment Method & Status</span>
+                <span className="font-bold uppercase text-neutral-400 text-[10px]">Payment & Promo Details</span>
                 <p className="font-bold text-neutral-900 uppercase">
                   {orderDetails.paymentMethod === 'cod' ? 'Cash on Delivery / Pickup' : orderDetails.paymentMethod === 'upi' ? 'UPI Instant Payment' : 'Card Payment'}
                 </p>
-                <p className="text-neutral-500 pt-1">Status: <strong className="text-amber-600 uppercase font-bold">{orderDetails.status}</strong></p>
+                {orderDetails.appliedCoupon && (
+                  <p className="text-emerald-700 font-bold pt-1">
+                    Promo Code: {orderDetails.appliedCoupon.code} (-₹{orderDetails.couponDiscount.toLocaleString()})
+                  </p>
+                )}
+                <p className="text-neutral-500 pt-0.5">Status: <strong className="text-amber-600 uppercase font-bold">{orderDetails.status}</strong></p>
               </div>
             </div>
 
@@ -236,7 +284,7 @@ export default function CheckoutPage() {
             Checkout & Order Summary
           </h1>
           <p className="text-sm text-neutral-600 mt-1">
-            Complete your shipping address and payment preference to place your vintage order.
+            Complete your shipping address, apply promo codes, and choose payment preference.
           </p>
         </div>
 
@@ -428,7 +476,7 @@ export default function CheckoutPage() {
 
           </div>
 
-          {/* Right Column: Cart Breakdown & Order Summary */}
+          {/* Right Column: Cart Breakdown, Promo Code & Order Summary */}
           <div className="lg:col-span-5 space-y-6">
             
             <div className="bg-[#F8F8F8] border border-neutral-200 rounded-3xl p-6 sm:p-8 space-y-6 sticky top-28">
@@ -452,7 +500,7 @@ export default function CheckoutPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
                   {cartItems.map(({ product, quantity }) => (
                     <div key={product.id} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-neutral-200">
                       <img src={product.images?.[0] || product.image} alt={product.name} className="w-12 h-14 object-cover rounded-xl shrink-0" />
@@ -492,26 +540,123 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {/* Promo / Coupon Code Section */}
+              <div className="space-y-3 pt-3 border-t border-neutral-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase text-neutral-700 flex items-center gap-1.5">
+                    <Tag size={14} className="text-neutral-900" />
+                    <span>Apply Promo Code</span>
+                  </span>
+                </div>
+
+                {appliedCoupon ? (
+                  /* Applied Coupon Success Badge */
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+                        <Tag size={16} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-extrabold text-emerald-900 uppercase">{appliedCoupon.code}</span>
+                          <span className="bg-emerald-200 text-emerald-900 text-[9px] font-bold px-1.5 py-0.2 rounded">APPLIED</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-700 font-medium">
+                          Saved ₹{couponDiscount.toLocaleString()} ({appliedCoupon.description})
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="p-1.5 text-neutral-400 hover:text-rose-600 rounded-lg hover:bg-emerald-100 transition-colors"
+                      title="Remove coupon"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  /* Promo Input Form */
+                  <form onSubmit={handleApplyCouponSubmit} className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCodeInput}
+                        onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                        placeholder="ENTER PROMO CODE (e.g. VINTAGE10)"
+                        className="flex-1 bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-[#111111] focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!couponCodeInput.trim()}
+                        className="bg-[#111111] hover:bg-black disabled:bg-neutral-300 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
+
+                    {/* Quick Apply Pills */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="text-[10px] text-neutral-400 font-semibold self-center mr-1">Quick:</span>
+                      {availableCoupons.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => handleApplyCouponSubmit(null, c.code)}
+                          className="bg-white border border-neutral-200 hover:border-black text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg text-neutral-800 transition-all hover:scale-105"
+                          title={c.description}
+                        >
+                          +{c.code}
+                        </button>
+                      ))}
+                    </div>
+                  </form>
+                )}
+
+                {/* Feedback Message */}
+                {couponFeedback && !appliedCoupon && (
+                  <div className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    couponFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    {couponFeedback.type === 'success' ? <CheckCircle2 size={14} className="text-emerald-600 shrink-0" /> : <AlertCircle size={14} className="text-rose-600 shrink-0" />}
+                    <span>{couponFeedback.message}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Price Calculation Summary */}
               <div className="space-y-2.5 pt-4 border-t border-neutral-200 text-xs">
                 <div className="flex justify-between text-neutral-600">
                   <span>Subtotal</span>
                   <span className="font-bold text-neutral-900">₹{subtotal.toLocaleString()}</span>
                 </div>
+
+                {appliedCoupon && couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-bold">
+                    <span className="flex items-center gap-1">
+                      <span>Promo Discount ({appliedCoupon.code})</span>
+                    </span>
+                    <span>-₹{couponDiscount.toLocaleString()}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-neutral-600">
                   <span>Delivery Fee</span>
                   <span className="font-bold text-neutral-900">
                     {deliveryFee === 0 ? <strong className="text-emerald-600">FREE</strong> : `₹${deliveryFee}`}
                   </span>
                 </div>
+
                 {subtotal > 0 && subtotal < 1999 && (
                   <p className="text-[10px] text-neutral-500 italic">
                     Add ₹{(1999 - subtotal).toLocaleString()} more for Free Delivery!
                   </p>
                 )}
+
                 <div className="flex justify-between text-base font-black text-[#111111] pt-3 border-t border-neutral-200">
                   <span>Total Amount</span>
-                  <span>₹{grandTotal.toLocaleString()}</span>
+                  <span className="font-display">₹{total.toLocaleString()}</span>
                 </div>
               </div>
 

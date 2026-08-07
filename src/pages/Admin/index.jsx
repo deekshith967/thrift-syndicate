@@ -783,6 +783,12 @@ export default function AdminDashboard() {
                   <span>Items Subtotal:</span>
                   <span className="font-bold text-neutral-900">₹{selectedOrder.subtotal.toLocaleString()}</span>
                 </div>
+                {selectedOrder.appliedCoupon && (selectedOrder.couponDiscount > 0 || selectedOrder.appliedCoupon.discountAmount > 0) && (
+                  <div className="flex justify-between text-emerald-700 font-bold">
+                    <span>Applied Promo ({selectedOrder.appliedCoupon.code}):</span>
+                    <span>-₹{(selectedOrder.couponDiscount || selectedOrder.appliedCoupon.discountAmount).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-neutral-600">
                   <span>Delivery Fee:</span>
                   <span className="font-bold text-neutral-900">

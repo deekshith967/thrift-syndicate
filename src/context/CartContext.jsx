@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useProducts, getProductById } from '../data/productService';
+import { validateCoupon, calculateCouponDiscount, AVAILABLE_COUPONS } from '../data/couponService';
 
 const CartContext = createContext(null);
 
 const CART_STORAGE_KEY = 'thrift_syndicate_cart_v1';
+const COUPON_STORAGE_KEY = 'thrift_syndicate_applied_coupon_v1';
 
 export function CartProvider({ children }) {
   const products = useProducts();
@@ -20,9 +22,19 @@ export function CartProvider({ children }) {
     }
   });
 
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COUPON_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (err) {
+      console.error('Error loading coupon from localStorage:', err);
+      return null;
+    }
+  });
+
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Sync lightweight raw cart state (product IDs & quantities only) to localStorage
+  // Sync lightweight raw cart state to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(rawCartItems));
@@ -31,7 +43,20 @@ export function CartProvider({ children }) {
     }
   }, [rawCartItems]);
 
-  // Dynamically map cart items against current products catalog (Single Source of Truth)
+  // Sync applied coupon to localStorage
+  useEffect(() => {
+    try {
+      if (appliedCoupon) {
+        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem(COUPON_STORAGE_KEY);
+      }
+    } catch (err) {
+      console.error('Error saving coupon to localStorage:', err);
+    }
+  }, [appliedCoupon]);
+
+  // Dynamically map cart items against current products catalog
   const cartItems = useMemo(() => {
     return rawCartItems
       .map((item) => {
@@ -90,6 +115,7 @@ export function CartProvider({ children }) {
 
   const clearCart = () => {
     setRawCartItems([]);
+    setAppliedCoupon(null);
   };
 
   const openCart = () => setIsCartOpen(true);
@@ -103,13 +129,47 @@ export function CartProvider({ children }) {
     return cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   }, [cartItems]);
 
-  const total = subtotal;
+  const couponDiscount = useMemo(() => {
+    return calculateCouponDiscount(appliedCoupon, subtotal);
+  }, [appliedCoupon, subtotal]);
+
+  const netSubtotal = useMemo(() => {
+    return Math.max(0, subtotal - couponDiscount);
+  }, [subtotal, couponDiscount]);
+
+  const deliveryFee = useMemo(() => {
+    if (subtotal === 0) return 0;
+    return subtotal >= 1999 ? 0 : 99;
+  }, [subtotal]);
+
+  const total = useMemo(() => {
+    return netSubtotal + deliveryFee;
+  }, [netSubtotal, deliveryFee]);
+
+  const applyCoupon = (code) => {
+    const result = validateCoupon(code, subtotal);
+    if (result.valid) {
+      setAppliedCoupon(result.coupon);
+    }
+    return result;
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+  };
 
   const value = {
     cartItems,
     cartCount,
     subtotal,
+    couponDiscount,
+    netSubtotal,
+    deliveryFee,
     total,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
+    availableCoupons: AVAILABLE_COUPONS,
     addToCart,
     removeFromCart,
     updateQuantity,
