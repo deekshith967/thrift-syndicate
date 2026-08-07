@@ -133,9 +133,13 @@ export default function ProductDetailsPage() {
 
                 {/* Stock Status Badge */}
                 <div className="flex items-center gap-2">
-                  <span className={`inline-block w-2 h-2 rounded-full ${product.inStock ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                    {product.inStock ? '✓ Authentic Vintage In Stock' : 'Out of Stock'}
+                  <span className={`inline-block w-2.5 h-2.5 rounded-full ${
+                    product.stock === 0 ? 'bg-rose-500' : product.stock <= 2 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse'
+                  }`}></span>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${
+                    product.stock === 0 ? 'text-rose-700' : product.stock <= 2 ? 'text-amber-800 font-extrabold' : 'text-emerald-700'
+                  }`}>
+                    {product.stock === 0 ? 'Out of Stock' : product.stock <= 2 ? `⚡ Only ${product.stock} Left In Stock!` : `✓ In Stock (${product.stock} available)`}
                   </span>
                   <span className="text-neutral-300">•</span>
                   <span className="text-xs font-medium text-neutral-600">{product.condition}</span>
@@ -165,12 +169,14 @@ export default function ProductDetailsPage() {
                     <span className="font-bold text-neutral-900">{product.size} ({product.fit})</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-neutral-100">
-                    <span className="text-neutral-500 font-medium">Fabric Composition:</span>
-                    <span className="font-bold text-neutral-900">{product.fabric}</span>
+                    <span className="text-neutral-500 font-medium">Available Quantity:</span>
+                    <span className={`font-bold ${product.stock === 0 ? 'text-rose-600' : product.stock <= 2 ? 'text-amber-700 font-extrabold' : 'text-emerald-700'}`}>
+                      {product.stock === 0 ? '0 (Out of Stock)' : `${product.stock} units`}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-neutral-100">
-                    <span className="text-neutral-500 font-medium">Color Patina:</span>
-                    <span className="font-bold text-neutral-900">{product.color}</span>
+                    <span className="text-neutral-500 font-medium">Fabric Composition:</span>
+                    <span className="font-bold text-neutral-900">{product.fabric}</span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-neutral-500 font-medium">Authentication:</span>
@@ -200,11 +206,16 @@ export default function ProductDetailsPage() {
               {/* Action Buttons: Add to Cart, Reserve & Wishlist */}
               <div className="space-y-3 pt-4 border-t border-neutral-200">
                 <button
-                  onClick={() => addToCart(product, 1)}
-                  className="w-full bg-[#111111] hover:bg-black text-white py-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all hover:shadow-lg"
+                  disabled={product.stock === 0}
+                  onClick={() => product.stock > 0 && addToCart(product, 1)}
+                  className={`w-full py-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all ${
+                    product.stock === 0
+                      ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                      : 'bg-[#111111] hover:bg-black text-white shadow-lg hover:scale-[1.01]'
+                  }`}
                 >
                   <ShoppingBag size={18} />
-                  <span>Add to Shopping Cart</span>
+                  <span>{product.stock === 0 ? 'Out of Stock' : 'Add to Shopping Cart'}</span>
                 </button>
 
                 <a

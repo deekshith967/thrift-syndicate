@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { deductProductStock } from './productService';
 
 const ORDERS_STORAGE_KEY = 'thrift_syndicate_orders_v1';
 
@@ -231,6 +232,13 @@ export function createOrder(orderData) {
   };
 
   mutableOrders = [newOrder, ...mutableOrders];
+
+  // Automatically deduct purchased quantities from single source of truth product inventory
+  try {
+    deductProductStock(sanitizedItems);
+  } catch (err) {
+    console.error('Failed to deduct product stock:', err);
+  }
 
   // Guarantee persistence to localStorage before notifying subscribers or returning success
   persistOrders();

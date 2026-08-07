@@ -15,6 +15,10 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave }) 
   const badgeText = product.badge || (product.featured ? "Featured" : product.newArrival ? "New Arrival" : null);
   const productUrl = `/products/${product.id}`;
 
+  const stockCount = Number(product.stock) || 0;
+  const isOutOfStock = stockCount === 0;
+  const isLowStock = stockCount > 0 && stockCount <= 2;
+
   const handleHeartClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -32,23 +36,35 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave }) 
           <img
             src={imageUrl}
             alt={product.name}
-            className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700"
+            className={`w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ${
+              isOutOfStock ? 'grayscale opacity-75' : ''
+            }`}
           />
           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors"></div>
         </Link>
 
-        {/* Top Badges */}
+        {/* Top Left Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10 pointer-events-none">
           {badgeText && (
             <span className="bg-[#111111] text-white text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-md shadow-sm">
               {badgeText}
             </span>
           )}
-          {product.size && (
+
+          {/* Stock Badge */}
+          {isOutOfStock ? (
+            <span className="bg-rose-600 text-white text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 rounded-md shadow-xs">
+              Out of Stock
+            </span>
+          ) : isLowStock ? (
+            <span className="bg-amber-500 text-black text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md shadow-xs animate-pulse">
+              Only {stockCount} Left!
+            </span>
+          ) : product.size ? (
             <span className="bg-white/90 backdrop-blur-md text-neutral-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-neutral-200">
               {product.size}
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* Top Right Save / Heart Button */}
@@ -69,12 +85,17 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave }) 
         <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 z-10">
           <button
             type="button"
-            onClick={() => addToCart(product, 1)}
-            className="flex-1 bg-[#111111] hover:bg-black text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg transition-transform hover:scale-[1.02]"
-            title="Add item to Cart"
+            disabled={isOutOfStock}
+            onClick={() => !isOutOfStock && addToCart(product, 1)}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg transition-transform ${
+              isOutOfStock
+                ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                : 'bg-[#111111] hover:bg-black text-white hover:scale-[1.02]'
+            }`}
+            title={isOutOfStock ? "Product is out of stock" : "Add item to Cart"}
           >
             <ShoppingBag size={14} />
-            <span>Add to Cart</span>
+            <span>{isOutOfStock ? "Out of Stock" : "Add to Cart"}</span>
           </button>
           <button
             type="button"
@@ -107,20 +128,33 @@ export default function ProductCard({ product, onSelectProduct, onToggleSave }) 
               <span className="font-display font-black text-xl text-[#111111]">
                 ₹{product.price.toLocaleString()}
               </span>
-              {product.originalPrice && (
+              {product.originalPrice > product.price && (
                 <span className="text-xs text-neutral-400 line-through font-mono">
                   ₹{product.originalPrice.toLocaleString()}
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-emerald-600 font-semibold uppercase">In-Store / Delivery</p>
+            
+            {/* Stock indicator below price */}
+            {isOutOfStock ? (
+              <p className="text-[10px] text-rose-600 font-bold uppercase">Out of Stock</p>
+            ) : isLowStock ? (
+              <p className="text-[10px] text-amber-600 font-bold uppercase">Only {stockCount} left in stock</p>
+            ) : (
+              <p className="text-[10px] text-emerald-600 font-semibold uppercase">In Stock ({stockCount} available)</p>
+            )}
           </div>
 
           <button
             type="button"
-            onClick={() => addToCart(product, 1)}
-            className="bg-neutral-100 hover:bg-[#111111] hover:text-white text-neutral-800 p-2.5 rounded-xl transition-colors"
-            title="Add to Cart"
+            disabled={isOutOfStock}
+            onClick={() => !isOutOfStock && addToCart(product, 1)}
+            className={`p-2.5 rounded-xl transition-colors ${
+              isOutOfStock
+                ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                : 'bg-neutral-100 hover:bg-[#111111] hover:text-white text-neutral-800'
+            }`}
+            title={isOutOfStock ? "Out of Stock" : "Add to Cart"}
           >
             <ShoppingBag size={16} />
           </button>

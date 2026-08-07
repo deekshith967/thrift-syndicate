@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PRODUCTS as RAW_PRODUCTS } from './productsData';
 
-const PRODUCTS_STORAGE_KEY = 'thrift_syndicate_products_v2';
+const PRODUCTS_STORAGE_KEY = 'thrift_syndicate_products_v3';
 
 /**
  * Normalizes a product object to ensure all standard schema fields are present.
@@ -16,6 +16,13 @@ export function normalizeProduct(raw) {
     : raw.image 
       ? [raw.image] 
       : ["/images/hero.png"];
+
+  const seedMatch = RAW_PRODUCTS.find((p) => String(p.id).toLowerCase() === String(raw.id).toLowerCase());
+  const stock = raw.stock !== undefined 
+    ? Math.max(0, Number(raw.stock) || 0)
+    : seedMatch && seedMatch.stock !== undefined 
+      ? Number(seedMatch.stock) 
+      : (raw.inStock === false ? 0 : 5);
 
   return {
     id: String(raw.id),
@@ -34,7 +41,8 @@ export function normalizeProduct(raw) {
     description: raw.description || "",
     featured: raw.featured ?? (raw.badge?.includes("Original") || raw.badge?.includes("Rare")),
     newArrival: raw.newArrival ?? true,
-    inStock: raw.inStock ?? true,
+    stock: stock,
+    inStock: stock > 0,
     rating: Number(raw.rating) || 4.8,
     // Preserved vintage metadata
     badge: raw.badge || "1-of-1 Original",
@@ -120,6 +128,7 @@ export function getAllProducts() {
  */
 export function addProduct(newProductData) {
   const nextId = `ts-${String(mutableProducts.length + 1).padStart(3, '0')}`;
+  const rawStock = newProductData.stock !== undefined ? Math.max(0, Number(newProductData.stock) || 0) : 5;
   const raw = {
     id: nextId,
     name: newProductData.name,
@@ -134,7 +143,8 @@ export function addProduct(newProductData) {
     image: newProductData.image || "/images/jackets.png",
     images: newProductData.image ? [newProductData.image] : ["/images/jackets.png"],
     description: newProductData.description || "Handpicked vintage piece in great condition.",
-    inStock: newProductData.inStock !== false,
+    stock: rawStock,
+    inStock: rawStock > 0,
     featured: Boolean(newProductData.featured),
     newArrival: true,
     rating: 5.0,
@@ -154,11 +164,14 @@ export function updateProduct(id, updatedFields) {
   if (index === -1) return null;
 
   const current = mutableProducts[index];
+  const newStock = updatedFields.stock !== undefined ? Math.max(0, Number(updatedFields.stock) || 0) : current.stock;
   const mergedRaw = {
     ...current,
     ...updatedFields,
     price: Number(updatedFields.price ?? current.price),
     originalPrice: Number(updatedFields.originalPrice ?? current.originalPrice),
+    stock: newStock,
+    inStock: newStock > 0,
     image: updatedFields.image || current.image,
     images: updatedFields.image ? [updatedFields.image] : current.images,
   };
@@ -168,6 +181,37 @@ export function updateProduct(id, updatedFields) {
   persistProducts();
   notifySubscribers();
   return updated;
+}
+
+/**
+ * Automatically deducts stock for completed orders.
+ */
+export function deductProductStock(orderItems = []) {
+  if (!Array.isArray(orderItems) || orderItems.length === 0) return;
+  let hasChanges = false;
+
+  mutableProducts = mutableProducts.map((p) => {
+    const matchedItem = orderItems.find(
+      (item) => String(item.product?.id || item.productId || '') === String(p.id)
+    );
+
+    if (matchedItem) {
+      const deductQty = Number(matchedItem.quantity) || 1;
+      const updatedStock = Math.max(0, p.stock - deductQty);
+      hasChanges = true;
+      return normalizeProduct({
+        ...p,
+        stock: updatedStock,
+        inStock: updatedStock > 0,
+      });
+    }
+    return p;
+  });
+
+  if (hasChanges) {
+    persistProducts();
+    notifySubscribers();
+  }
 }
 
 /**

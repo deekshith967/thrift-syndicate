@@ -26,6 +26,7 @@ export const PRODUCTS = [
     description: "Handpicked genuine full-grain leather jacket with vintage brass zippers, quilted lining, and an irreplaceable distressed patina. A true grail piece.",
     featured: true,
     newArrival: true,
+    stock: 5,
     inStock: true,
     rating: 4.9,
     badge: "1-of-1 Original",
@@ -50,6 +51,7 @@ export const PRODUCTS = [
     description: "Faded vintage black tee featuring high-density screenprinted retro Japanese typography. Super soft 240 GSM combed cotton.",
     featured: true,
     newArrival: false,
+    stock: 2,
     inStock: true,
     rating: 4.8,
     badge: "Bestseller",
@@ -74,6 +76,7 @@ export const PRODUCTS = [
     description: "Custom acid-washed French terry sweatshirt with thick ribbing and exaggerated drop shoulders for that effortless streetwear drape.",
     featured: true,
     newArrival: true,
+    stock: 1,
     inStock: true,
     rating: 4.9,
     badge: "Staff Pick",
@@ -98,7 +101,8 @@ export const PRODUCTS = [
     description: "Iconic wool blend body with contrast faux leather sleeves and authentic chenille chest patch. Collectors item in fantastic condition.",
     featured: true,
     newArrival: false,
-    inStock: true,
+    stock: 0,
+    inStock: false,
     rating: 5.0,
     badge: "Limited Rare",
     era: "1988 Classic American Varsity",
@@ -122,6 +126,7 @@ export const PRODUCTS = [
     description: "Silky breathable rayon poplin with vibrant 90s geometric pattern. Perfect for Visakhapatnam coastal summers.",
     featured: false,
     newArrival: true,
+    stock: 8,
     inStock: true,
     rating: 4.7,
     badge: "Summer Essential",
@@ -146,6 +151,7 @@ export const PRODUCTS = [
     description: "Heavyweight 14oz raw indigo denim trucker jacket featuring brown corduroy accent collar and dual chest flap pockets.",
     featured: false,
     newArrival: false,
+    stock: 4,
     inStock: true,
     rating: 4.8,
     badge: "Timeless",
@@ -170,6 +176,7 @@ export const PRODUCTS = [
     description: "Heavy cotton twill wide-leg cargo pants with 6 functional tactical pockets and adjustable drawstrings at the hems.",
     featured: false,
     newArrival: true,
+    stock: 3,
     inStock: true,
     rating: 4.7,
     badge: "Trending",
@@ -179,73 +186,84 @@ export const PRODUCTS = [
   },
   {
     id: "ts-008",
-    name: "Limited Edition Retro Band Graphic Crewneck",
+    name: "Vintage Distressed Graphic Band Hoodie",
     price: 1699,
     originalPrice: 4999,
     discount: 66,
-    category: "Limited Finds",
-    subcategory: "Band Merch",
-    brand: "Concert Vintage",
+    category: "Retro Essentials",
+    subcategory: "Hoodies",
+    brand: "Rock Heritage",
     size: "XL",
-    condition: "8.5/10 Authentic Vintage Fade",
-    color: "Washed Charcoal",
+    condition: "9.5/10 Perfect Vintage Fade",
+    color: "Washed Vintage Charcoal",
     images: ["/images/shirts.png"],
     image: "/images/shirts.png",
-    description: "Extremely rare original concert merch with single-stitch sleeve details and authentic cracked graphic print.",
+    description: "Heavy fleece pullover hoodie with authentic washed vintage distress detail and cracked band graphic.",
     featured: true,
-    newArrival: false,
+    newArrival: true,
+    stock: 6,
     inStock: true,
     rating: 4.9,
-    badge: "1-of-1 Rare",
-    era: "1998 Concert Merch",
-    fabric: "100% Vintage Combed Cotton",
-    fit: "Relaxed Boxy Fit"
+    badge: "Grail Item",
+    era: "1996 Tour Original",
+    fabric: "400 GSM Heavy Cotton Fleece",
+    fit: "Oversized Boxy Fit"
   }
 ];
 
 export const REVIEWS = [
   {
     id: 1,
-    name: "Siddharth Verma",
-    role: "Local Streetwear Enthusiast",
+    name: "Aarav Sharma",
+    location: "Daba Gardens, Vizag",
     rating: 5,
-    date: "2 weeks ago",
-    comment: "I found one of the best jackets I've ever owned at Thrift Syndicate! The fabric quality and fit are unmatched anywhere else in Vizag.",
-    tag: "Verified Shopper"
+    comment: "Best thrift store in Vizag! The 90s leather biker jacket was in pristine condition. Real 1-of-1 grail.",
+    verified: true,
+    date: "2 days ago"
   },
   {
     id: 2,
-    name: "Ananya Rao",
-    role: "College Student, AU",
+    name: "Priya Reddy",
+    location: "Siripuram, Vizag",
     rating: 5,
-    date: "1 month ago",
-    comment: "Great quality at affordable prices. As a college student, finding authentic vintage pieces that don't break the bank is amazing!",
-    tag: "Frequent Buyer"
+    comment: "Found an ultra rare Japanese oversized graphic tee. Quality of heavy cotton is insane for the price.",
+    verified: true,
+    date: "1 week ago"
   },
   {
     id: 3,
-    name: "Karan Patel",
-    role: "Sneakerhead & Collector",
+    name: "Vikram Verma",
+    location: "Gajuwaka, Vizag",
     rating: 5,
-    date: "3 weeks ago",
-    comment: "Perfect place for thrift lovers. Every week they get new curated arrivals. The 90s oversized hoodies and tees are pure gold.",
-    tag: "Regular Customer"
-  },
-  {
-    id: 4,
-    name: "Pooja Reddy",
-    role: "Fashion Stylist",
-    rating: 5,
-    date: "1 month ago",
-    comment: "Fantastic collection of shirts and jackets. Love the ambiance in the store and the staff is super welcoming and LGBTQ+ friendly!",
-    tag: "Verified Review"
+    comment: "Fast local pickup in Daba Gardens. Staff was super helpful with vintage sizing and authenticity checks.",
+    verified: true,
+    date: "2 weeks ago"
   }
 ];
 
 export const GALLERY_ITEMS = [
-  { id: 1, title: "Curated Jacket Display", category: "Store Interior", image: "/images/jackets.png", span: "row-span-2" },
-  { id: 2, title: "Boutique Atmosphere", category: "Store Interior", image: "/images/store.png", span: "row-span-1" },
-  { id: 3, title: "Graphic Tee Racks", category: "Collections", image: "/images/shirts.png", span: "row-span-1" },
-  { id: 4, title: "Oversized Streetwear Fit", category: "Lookbook", image: "/images/oversized.png", span: "row-span-2" },
-  { id: 5, title: "Vintage Varsity Jacket Detail", category: "Lookbook", image: "/images/hero.png", span: "row-span-1" },
+  {
+    id: 1,
+    image: "/images/hero.png",
+    title: "90s Vintage Leather & Streetwear Drop",
+    likes: 248
+  },
+  {
+    id: 2,
+    image: "/images/jackets.png",
+    title: "Handpicked Vintage Biker Jackets",
+    likes: 312
+  },
+  {
+    id: 3,
+    image: "/images/shirts.png",
+    title: "Heavyweight Graphic Oversized Tees",
+    likes: 189
+  },
+  {
+    id: 4,
+    image: "/images/oversized.png",
+    title: "French Terry Acid Wash Sweats",
+    likes: 275
+  }
 ];

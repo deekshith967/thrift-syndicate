@@ -74,19 +74,24 @@ export function CartProvider({ children }) {
   const addToCart = (product, quantity = 1) => {
     if (!product || !product.id) return;
     const targetId = String(product.id);
+    const liveProd = getProductById(targetId, products);
+    if (!liveProd || liveProd.stock <= 0) return;
+
     setRawCartItems((prevItems) => {
       const existingIdx = prevItems.findIndex(
         (item) => String(item.productId || item.product?.id || '') === targetId
       );
       if (existingIdx > -1) {
+        const currentQty = prevItems[existingIdx].quantity;
+        const newQty = Math.min(liveProd.stock, currentQty + quantity);
         const updated = [...prevItems];
         updated[existingIdx] = {
           productId: targetId,
-          quantity: updated[existingIdx].quantity + quantity,
+          quantity: newQty,
         };
         return updated;
       }
-      return [...prevItems, { productId: targetId, quantity }];
+      return [...prevItems, { productId: targetId, quantity: Math.min(liveProd.stock, quantity) }];
     });
     setIsCartOpen(true);
   };
@@ -104,10 +109,14 @@ export function CartProvider({ children }) {
       removeFromCart(targetId);
       return;
     }
+    const liveProd = getProductById(targetId, products);
+    const maxStock = liveProd ? liveProd.stock : 99;
+    const clampedQty = Math.min(maxStock, quantity);
+
     setRawCartItems((prevItems) =>
       prevItems.map((item) =>
         String(item.productId || item.product?.id || '') === targetId
-          ? { productId: targetId, quantity }
+          ? { productId: targetId, quantity: clampedQty }
           : item
       )
     );

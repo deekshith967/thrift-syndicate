@@ -83,16 +83,49 @@ export default function AdminDashboard() {
 
   // Metrics
   const metrics = useMemo(() => {
-    const totalProducts = productList.length;
-    const inStockProducts = productList.filter((p) => p.inStock).length;
-    const totalValue = productList.reduce((sum, p) => sum + p.price, 0);
-    const totalOrders = orderList.length;
-    const pendingOrders = orderList.filter((o) => o.status === 'Pending').length;
-    const totalRevenue = orderList
-      .filter((o) => o.status !== 'Cancelled')
-      .reduce((sum, o) => sum + o.total, 0);
+    const totalProducts = Array.isArray(productList) ? productList.length : 0;
 
-    return { totalProducts, inStockProducts, totalValue, totalOrders, pendingOrders, totalRevenue };
+    const inStockProducts = Array.isArray(productList)
+      ? productList.filter((p) => {
+          const s = p.stock !== undefined ? Number(p.stock) : (p.inStock ? 5 : 0);
+          return s > 0;
+        }).length
+      : 0;
+
+    const lowStockProducts = Array.isArray(productList)
+      ? productList.filter((p) => {
+          const s = p.stock !== undefined ? Number(p.stock) : (p.inStock ? 5 : 0);
+          return s > 0 && s <= 2;
+        }).length
+      : 0;
+
+    const outOfStockProducts = Array.isArray(productList)
+      ? productList.filter((p) => {
+          const s = p.stock !== undefined ? Number(p.stock) : (p.inStock ? 5 : 0);
+          return s === 0 || p.inStock === false;
+        }).length
+      : 0;
+
+    const totalOrders = Array.isArray(orderList) ? orderList.length : 0;
+    const pendingOrders = Array.isArray(orderList)
+      ? orderList.filter((o) => String(o.status || '').toLowerCase() === 'pending').length
+      : 0;
+
+    const totalRevenue = Array.isArray(orderList)
+      ? orderList
+          .filter((o) => String(o.status || '').toLowerCase() !== 'cancelled')
+          .reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+      : 0;
+
+    return {
+      totalProducts,
+      inStockProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      totalOrders,
+      pendingOrders,
+      totalRevenue
+    };
   }, [productList, orderList]);
 
   // Categories list
@@ -184,10 +217,10 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] flex flex-col lg:flex-row text-[#111111] font-sans pt-16">
+    <div className="min-h-screen bg-[#F8F8F8] flex flex-col lg:flex-row text-[#111111] font-sans pt-20 lg:pt-24">
       
       {/* Mobile Top Bar */}
-      <div className="lg:hidden bg-[#111111] text-[#FFFFFF] p-4 flex items-center justify-between sticky top-16 z-30">
+      <div className="lg:hidden bg-[#111111] text-[#FFFFFF] p-4 flex items-center justify-between sticky top-20 z-30 shadow-md">
         <div className="flex items-center gap-2">
           <Sparkles size={18} className="text-emerald-400" />
           <span className="font-display font-extrabold uppercase text-sm">Syndicate Admin</span>
@@ -198,7 +231,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Sidebar Navigation */}
-      <aside className={`w-full lg:w-64 bg-[#111111] text-white p-6 flex flex-col justify-between shrink-0 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] z-20 ${
+      <aside className={`w-full lg:w-64 bg-[#111111] text-white p-6 flex flex-col justify-between shrink-0 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] z-20 ${
         sidebarOpen ? 'block' : 'hidden lg:flex'
       }`}>
         <div className="space-y-8">
@@ -278,10 +311,10 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 sm:p-10 max-w-7xl">
+      <main className="flex-1 p-6 sm:p-10 max-w-7xl w-full overflow-x-hidden">
         
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pt-2">
           <div>
             <h1 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-[#111111]">
               {activeTab === 'overview' ? 'Dashboard Overview' : activeTab === 'orders' ? 'Customer Orders' : 'Manage Products'}
@@ -294,7 +327,7 @@ export default function AdminDashboard() {
           {activeTab === 'products' && (
             <button
               onClick={() => { setEditingProduct(null); setIsFormOpen(true); }}
-              className="inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition-all hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition-all hover:scale-[1.02] shrink-0"
             >
               <Plus size={16} />
               <span>Add New Product</span>
@@ -303,37 +336,65 @@ export default function AdminDashboard() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-neutral-500">
-              <span className="text-xs font-bold uppercase tracking-wider">Total Orders</span>
-              <ShoppingBag size={18} className="text-neutral-800" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs flex flex-col justify-between min-h-[108px] transition-all hover:border-neutral-300">
+            <div className="flex items-center justify-between gap-2 text-neutral-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 truncate">Total Products</span>
+              <Package size={18} className="text-neutral-800 shrink-0" />
             </div>
-            <p className="font-display font-black text-3xl text-[#111111]">{metrics.totalOrders}</p>
+            <div className="flex-1 flex items-center pt-2">
+              <p className="font-display font-black text-2xl lg:text-3xl text-[#111111] leading-none tracking-tight">
+                {metrics.totalProducts}
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-neutral-500">
-              <span className="text-xs font-bold uppercase tracking-wider">Pending Orders</span>
-              <AlertCircle size={18} className="text-amber-500" />
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs flex flex-col justify-between min-h-[108px] transition-all hover:border-neutral-300">
+            <div className="flex items-center justify-between gap-2 text-neutral-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 truncate">Low Stock (≤2)</span>
+              <AlertCircle size={18} className="text-amber-500 shrink-0" />
             </div>
-            <p className="font-display font-black text-3xl text-amber-600">{metrics.pendingOrders}</p>
+            <div className="flex-1 flex items-center pt-2">
+              <p className="font-display font-black text-2xl lg:text-3xl text-amber-600 leading-none tracking-tight">
+                {metrics.lowStockProducts}
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-neutral-500">
-              <span className="text-xs font-bold uppercase tracking-wider">Order Revenue</span>
-              <DollarSign size={18} className="text-emerald-600" />
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs flex flex-col justify-between min-h-[108px] transition-all hover:border-neutral-300">
+            <div className="flex items-center justify-between gap-2 text-neutral-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 truncate">Out of Stock</span>
+              <X size={18} className="text-rose-500 shrink-0" />
             </div>
-            <p className="font-display font-black text-3xl text-emerald-700">₹{metrics.totalRevenue.toLocaleString()}</p>
+            <div className="flex-1 flex items-center pt-2">
+              <p className="font-display font-black text-2xl lg:text-3xl text-rose-600 leading-none tracking-tight">
+                {metrics.outOfStockProducts}
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-neutral-500">
-              <span className="text-xs font-bold uppercase tracking-wider">Total Catalog</span>
-              <Package size={18} className="text-neutral-800" />
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs flex flex-col justify-between min-h-[108px] transition-all hover:border-neutral-300">
+            <div className="flex items-center justify-between gap-2 text-neutral-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 truncate">Total Orders</span>
+              <ShoppingBag size={18} className="text-neutral-800 shrink-0" />
             </div>
-            <p className="font-display font-black text-3xl text-[#111111]">{metrics.totalProducts}</p>
+            <div className="flex-1 flex items-center pt-2">
+              <p className="font-display font-black text-2xl lg:text-3xl text-[#111111] leading-none tracking-tight">
+                {metrics.totalOrders}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs flex flex-col justify-between min-h-[108px] transition-all hover:border-neutral-300">
+            <div className="flex items-center justify-between gap-2 text-neutral-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 truncate">Order Revenue</span>
+              <DollarSign size={18} className="text-emerald-600 shrink-0" />
+            </div>
+            <div className="flex-1 flex items-center pt-2">
+              <p className="font-display font-black text-xl sm:text-2xl lg:text-3xl text-emerald-700 leading-none tracking-tight whitespace-nowrap">
+                ₹{metrics.totalRevenue.toLocaleString()}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -613,10 +674,16 @@ export default function AdminDashboard() {
                         {/* Stock */}
                         <td className="py-4 px-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            product.inStock ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+                            product.stock === 0
+                              ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                              : product.stock <= 2
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                           }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${product.inStock ? 'bg-emerald-600' : 'bg-rose-600'}`}></span>
-                            {product.inStock ? 'In Stock' : 'Out of Stock'}
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              product.stock === 0 ? 'bg-rose-600' : product.stock <= 2 ? 'bg-amber-600' : 'bg-emerald-600'
+                            }`}></span>
+                            {product.stock === 0 ? 'Out of Stock' : product.stock <= 2 ? `Low (${product.stock})` : `In Stock (${product.stock})`}
                           </span>
                         </td>
 

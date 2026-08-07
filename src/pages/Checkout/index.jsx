@@ -108,6 +108,20 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Validate that requested item quantities do not exceed current product stock
+    for (const item of cartItems) {
+      const liveProd = getProductById(item.product.id);
+      const availableStock = liveProd ? liveProd.stock : 0;
+      if (!liveProd || item.quantity > availableStock) {
+        setFormError(
+          availableStock === 0
+            ? `Cannot place order: "${item.product.name}" is currently Out of Stock.`
+            : `Cannot place order: "${item.product.name}" only has ${availableStock} units left in stock.`
+        );
+        return;
+      }
+    }
+
     const generatedId = `TS-${Math.floor(100000 + Math.random() * 900000)}`;
     const orderPayload = {
       orderId: generatedId,
@@ -577,20 +591,29 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                 ) : (
-                  /* Promo Input Form */
-                  <form onSubmit={handleApplyCouponSubmit} className="space-y-2">
+                  /* Promo Input Container (Non-nested div with proper semantic controls) */
+                  <div className="space-y-2">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={couponCodeInput}
                         onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (couponCodeInput.trim()) {
+                              handleApplyCouponSubmit(e);
+                            }
+                          }
+                        }}
                         placeholder="ENTER PROMO CODE (e.g. VINTAGE10)"
                         className="flex-1 bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-[#111111] focus:outline-none"
                       />
                       <button
-                        type="submit"
+                        type="button"
                         disabled={!couponCodeInput.trim()}
-                        className="bg-[#111111] hover:bg-black disabled:bg-neutral-300 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+                        onClick={handleApplyCouponSubmit}
+                        className="bg-[#111111] hover:bg-black disabled:bg-neutral-300 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
                       >
                         Apply
                       </button>
@@ -611,7 +634,7 @@ export default function CheckoutPage() {
                         </button>
                       ))}
                     </div>
-                  </form>
+                  </div>
                 )}
 
                 {/* Feedback Message */}

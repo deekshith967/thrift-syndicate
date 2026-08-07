@@ -9,6 +9,7 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
     brand: initialProduct?.brand || 'Thrift Syndicate',
     price: initialProduct?.price || '',
     originalPrice: initialProduct?.originalPrice || '',
+    stock: initialProduct?.stock !== undefined ? initialProduct.stock : 5,
     size: initialProduct?.size || 'L / XL',
     condition: initialProduct?.condition || '9.5/10 Pristine Thrift Condition',
     badge: initialProduct?.badge || '1-of-1 Original',
@@ -24,6 +25,7 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Product name is required.';
     if (!formData.price || Number(formData.price) <= 0) newErrors.price = 'Valid price is required.';
+    if (formData.stock === '' || Number(formData.stock) < 0) newErrors.stock = 'Valid stock count (>= 0) is required.';
     if (!formData.category.trim()) newErrors.category = 'Category is required.';
     if (!formData.brand.trim()) newErrors.brand = 'Brand is required.';
     if (!formData.size.trim()) newErrors.size = 'Size is required.';
@@ -49,10 +51,13 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
+    const numericStock = Math.max(0, Number(formData.stock) || 0);
     onSubmit({
       ...formData,
       price: Number(formData.price),
       originalPrice: formData.originalPrice ? Number(formData.originalPrice) : Number(formData.price),
+      stock: numericStock,
+      inStock: numericStock > 0,
     });
   };
 
@@ -134,8 +139,8 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
             </div>
           </div>
 
-          {/* Pricing */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Pricing & Stock */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-neutral-700">Price (₹) *</label>
               <input
@@ -161,6 +166,22 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
                 placeholder="7999"
                 className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:ring-2 focus:ring-[#111111] focus:outline-none"
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-neutral-700">Stock Quantity *</label>
+              <input
+                type="number"
+                min="0"
+                name="stock"
+                value={formData.stock}
+                onChange={handleChange}
+                placeholder="5"
+                className={`w-full bg-neutral-50 border rounded-xl px-3.5 py-2.5 text-xs font-medium focus:ring-2 focus:ring-[#111111] focus:outline-none ${
+                  errors.stock ? 'border-rose-500' : 'border-neutral-200'
+                }`}
+              />
+              {errors.stock && <p className="text-[11px] text-rose-500 font-semibold">{errors.stock}</p>}
             </div>
           </div>
 
@@ -222,17 +243,6 @@ export default function ProductForm({ initialProduct = null, onSubmit, onClose }
 
           {/* Switches */}
           <div className="flex items-center gap-6 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold uppercase text-neutral-800">
-              <input
-                type="checkbox"
-                name="inStock"
-                checked={formData.inStock}
-                onChange={handleChange}
-                className="w-4 h-4 accent-[#111111]"
-              />
-              <span>In Stock</span>
-            </label>
-
             <label className="flex items-center gap-2 cursor-pointer text-xs font-bold uppercase text-neutral-800">
               <input
                 type="checkbox"
