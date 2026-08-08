@@ -1,18 +1,25 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useProducts, getProductById } from '../data/productService';
 import { validateCoupon, calculateCouponDiscount, AVAILABLE_COUPONS } from '../data/couponService';
+import { useCustomerAuth } from './CustomerAuthContext';
 
 const CartContext = createContext(null);
 
-const CART_STORAGE_KEY = 'thrift_syndicate_cart_v1';
-const COUPON_STORAGE_KEY = 'thrift_syndicate_applied_coupon_v1';
-
 export function CartProvider({ children }) {
   const products = useProducts();
+  const customerAuth = useCustomerAuth();
+  const customer = customerAuth?.customer || null;
+  const currentCustomerId = customer?.id || null;
 
+  // Dynamic customer-isolated storage keys
+  const getCartKey = (id) => (id ? `thrift_syndicate_cart_${id}` : 'thrift_syndicate_cart_guest_v1');
+  const getCouponKey = (id) => (id ? `thrift_syndicate_coupon_${id}` : 'thrift_syndicate_coupon_guest_v1');
+
+  // Load initial cart state for active customer session
   const [rawCartItems, setRawCartItems] = useState(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      const key = getCartKey(currentCustomerId);
+      const saved = localStorage.getItem(key);
       if (!saved) return [];
       const parsed = JSON.parse(saved);
       return Array.isArray(parsed) ? parsed : [];
@@ -24,7 +31,8 @@ export function CartProvider({ children }) {
 
   const [appliedCoupon, setAppliedCoupon] = useState(() => {
     try {
-      const saved = localStorage.getItem(COUPON_STORAGE_KEY);
+      const key = getCouponKey(currentCustomerId);
+      const saved = localStorage.getItem(key);
       return saved ? JSON.parse(saved) : null;
     } catch (err) {
       console.error('Error loading coupon from localStorage:', err);
@@ -34,27 +42,61 @@ export function CartProvider({ children }) {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Sync lightweight raw cart state to localStorage
+  // Keep track of previous customer ID to detect login, logout, or account switches
+  const prevCustomerRef = useRef(currentCustomerId);
+
   useEffect(() => {
+    if (prevCustomerRef.current !== currentCustomerId) {
+      prevCustomerRef.current = currentCustomerId;
+
+      // When customer logs out (becomes null), immediately clear active cart & coupon
+      if (!currentCustomerId) {
+        localStorage.removeItem('thrift_syndicate_cart_guest_v1');
+        localStorage.removeItem('thrift_syndicate_coupon_guest_v1');
+        setRawCartItems([]);
+        setAppliedCoupon(null);
+      } else {
+        // When a customer logs in, restore ONLY that customer's isolated cart
+        const cartKey = getCartKey(currentCustomerId);
+        const couponKey = getCouponKey(currentCustomerId);
+        try {
+          const savedCart = localStorage.getItem(cartKey);
+          setRawCartItems(savedCart ? JSON.parse(savedCart) : []);
+
+          const savedCoupon = localStorage.getItem(couponKey);
+          setAppliedCoupon(savedCoupon ? JSON.parse(savedCoupon) : null);
+        } catch (err) {
+          console.error('Error restoring customer cart:', err);
+          setRawCartItems([]);
+          setAppliedCoupon(null);
+        }
+      }
+    }
+  }, [currentCustomerId]);
+
+  // Sync raw cart items to active customer's specific storage key
+  useEffect(() => {
+    const key = getCartKey(currentCustomerId);
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(rawCartItems));
+      localStorage.setItem(key, JSON.stringify(rawCartItems));
     } catch (err) {
       console.error('Error saving cart to localStorage:', err);
     }
-  }, [rawCartItems]);
+  }, [rawCartItems, currentCustomerId]);
 
-  // Sync applied coupon to localStorage
+  // Sync applied coupon to active customer's specific storage key
   useEffect(() => {
+    const key = getCouponKey(currentCustomerId);
     try {
       if (appliedCoupon) {
-        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(appliedCoupon));
+        localStorage.setItem(key, JSON.stringify(appliedCoupon));
       } else {
-        localStorage.removeItem(COUPON_STORAGE_KEY);
+        localStorage.removeItem(key);
       }
     } catch (err) {
       console.error('Error saving coupon to localStorage:', err);
     }
-  }, [appliedCoupon]);
+  }, [appliedCoupon, currentCustomerId]);
 
   // Dynamically map cart items against current products catalog
   const cartItems = useMemo(() => {
@@ -125,6 +167,14 @@ export function CartProvider({ children }) {
   const clearCart = () => {
     setRawCartItems([]);
     setAppliedCoupon(null);
+    const key = getCartKey(currentCustomerId);
+    const couponKey = getCouponKey(currentCustomerId);
+    try {
+      localStorage.removeItem(key);
+      localStorage.removeItem(couponKey);
+    } catch (err) {
+      console.error('Error clearing cart storage:', err);
+    }
   };
 
   const openCart = () => setIsCartOpen(true);
@@ -139,8 +189,8 @@ export function CartProvider({ children }) {
   }, [cartItems]);
 
   const couponDiscount = useMemo(() => {
-    return calculateCouponDiscount(appliedCoupon, subtotal);
-  }, [appliedCoupon, subtotal]);
+    return calculateCouponDiscount(appliedCoupon, subtotal, customer);
+  }, [appliedCoupon, subtotal, customer]);
 
   const netSubtotal = useMemo(() => {
     return Math.max(0, subtotal - couponDiscount);
@@ -155,8 +205,16 @@ export function CartProvider({ children }) {
     return netSubtotal + deliveryFee;
   }, [netSubtotal, deliveryFee]);
 
-  const applyCoupon = (code) => {
-    const result = validateCoupon(code, subtotal);
+  const applyCoupon = (code, explicitCustomer = null) => {
+    const activeCustomer = explicitCustomer || customer || (() => {
+      try {
+        const saved = localStorage.getItem('thrift_syndicate_customer_auth_v1');
+        return saved ? JSON.parse(saved) : null;
+      } catch {
+        return null;
+      }
+    })();
+    const result = validateCoupon(code, subtotal, activeCustomer);
     if (result.valid) {
       setAppliedCoupon(result.coupon);
     }

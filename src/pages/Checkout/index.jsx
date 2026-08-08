@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useCustomerAuth } from '../../context/CustomerAuthContext';
 import { createOrder } from '../../data/orderService';
 import { getProductById } from '../../data/productService';
 import {
@@ -25,7 +26,8 @@ import {
   Tag,
   X,
   AlertCircle,
-  Percent
+  Percent,
+  Home
 } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -45,6 +47,7 @@ export default function CheckoutPage() {
     clearCart
   } = useCart();
 
+  const { customer, isLoggedIn } = useCustomerAuth();
   const navigate = useNavigate();
 
   // Customer Information Form State
@@ -57,6 +60,87 @@ export default function CheckoutPage() {
     state: 'Andhra Pradesh',
     pincode: '530020'
   });
+
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+  // Auto-fill from logged in customer & default saved address, or reset cleanly on logout
+  useEffect(() => {
+    if (isLoggedIn && customer) {
+      const addresses = Array.isArray(customer.addresses) ? customer.addresses : [];
+      if (addresses.length > 0) {
+        const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
+        setSelectedAddressId(defaultAddr.id);
+        setFormData({
+          fullName: defaultAddr.fullName || customer.name || '',
+          phone: defaultAddr.phone || customer.phone || '',
+          email: customer.email || '',
+          address: defaultAddr.addressLine1 + (defaultAddr.addressLine2 ? ', ' + defaultAddr.addressLine2 : ''),
+          city: defaultAddr.city || 'Visakhapatnam',
+          state: defaultAddr.state || 'Andhra Pradesh',
+          pincode: defaultAddr.pincode || '530020'
+        });
+      } else {
+        setSelectedAddressId(null);
+        setFormData({
+          fullName: customer.name || '',
+          phone: customer.phone || '',
+          email: customer.email || '',
+          address: '',
+          city: 'Visakhapatnam',
+          state: 'Andhra Pradesh',
+          pincode: '530020'
+        });
+      }
+    } else {
+      // Immediately reset to clean guest checkout state on logout / unauthenticated session
+      setSelectedAddressId(null);
+      setFormData({
+        fullName: '',
+        phone: '',
+        email: '',
+        address: '',
+        city: 'Visakhapatnam',
+        state: 'Andhra Pradesh',
+        pincode: '530020'
+      });
+      setCouponFeedback(null);
+      setCouponCodeInput('');
+      setFormError('');
+      removeCoupon();
+    }
+  }, [isLoggedIn, customer, removeCoupon]);
+
+  // Synchronize local coupon feedback banner when appliedCoupon is cleared or reset
+  useEffect(() => {
+    if (!appliedCoupon) {
+      setCouponFeedback(null);
+      setCouponCodeInput('');
+    }
+  }, [appliedCoupon]);
+
+  // When cart becomes empty, remove coupon and clear feedback
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      setCouponFeedback(null);
+      setCouponCodeInput('');
+      if (appliedCoupon) {
+        removeCoupon();
+      }
+    }
+  }, [cartItems.length, appliedCoupon, removeCoupon]);
+
+  const handleSelectSavedAddress = (addr) => {
+    setSelectedAddressId(addr.id);
+    setFormData({
+      fullName: addr.fullName || customer?.name || '',
+      phone: addr.phone || customer?.phone || '',
+      email: customer?.email || formData.email,
+      address: addr.addressLine1 + (addr.addressLine2 ? ', ' + addr.addressLine2 : ''),
+      city: addr.city || 'Visakhapatnam',
+      state: addr.state || 'Andhra Pradesh',
+      pincode: addr.pincode || '530020'
+    });
+  };
 
   // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState('cod');
@@ -81,7 +165,14 @@ export default function CheckoutPage() {
     const code = explicitCode || couponCodeInput;
     setCouponFeedback(null);
 
-    const res = applyCoupon(code);
+    const activeCustomer = customer || {
+      id: null,
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone
+    };
+
+    const res = applyCoupon(code, activeCustomer);
     if (res.valid) {
       setCouponFeedback({ type: 'success', message: res.message });
       setCouponCodeInput('');
@@ -125,6 +216,7 @@ export default function CheckoutPage() {
     const generatedId = `TS-${Math.floor(100000 + Math.random() * 900000)}`;
     const orderPayload = {
       orderId: generatedId,
+      customerId: customer?.id || null,
       items: cartItems.map(item => ({
         product: {
           id: item.product.id,
@@ -144,7 +236,10 @@ export default function CheckoutPage() {
       } : null,
       deliveryFee,
       total,
-      customer: { ...formData },
+      customer: {
+        id: customer?.id || null,
+        ...formData
+      },
       paymentMethod,
       status: 'Pending',
       date: new Date().toLocaleDateString('en-IN', {
@@ -174,7 +269,7 @@ export default function CheckoutPage() {
     );
 
     return (
-      <div className="pt-24 pb-20 bg-[#F8F8F8] min-h-[85vh] flex items-center justify-center">
+      <div className="pt-28 pb-20 sm:pt-32 bg-[#F8F8F8] min-h-[85vh] flex items-center justify-center">
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="bg-white rounded-3xl border border-neutral-200 shadow-xl p-8 sm:p-12 text-center space-y-8 animate-fade-in">
             
@@ -281,7 +376,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="pt-24 pb-20 bg-white">
+    <div className="pt-28 pb-20 sm:pt-32 bg-white min-h-[85vh]">
       <div className="container mx-auto px-4 md:px-8">
         
         {/* Breadcrumbs */}
@@ -315,12 +410,59 @@ export default function CheckoutPage() {
             
             {/* 1. Customer Information */}
             <div className="bg-[#F8F8F8] border border-neutral-200 rounded-3xl p-6 sm:p-8 space-y-5">
-              <div className="flex items-center gap-2 pb-3 border-b border-neutral-200">
-                <User size={18} className="text-neutral-900" />
-                <h3 className="font-display font-extrabold text-lg uppercase tracking-tight text-[#111111]">
-                  1. Shipping & Customer Details
-                </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-200">
+                <div className="flex items-center gap-2">
+                  <User size={18} className="text-neutral-900" />
+                  <h3 className="font-display font-extrabold text-lg uppercase tracking-tight text-[#111111]">
+                    1. Shipping & Customer Details
+                  </h3>
+                </div>
+                {isLoggedIn && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                    Auto-Filled from Profile
+                  </span>
+                )}
               </div>
+
+              {/* Saved Addresses Selector (for logged-in customers with saved addresses) */}
+              {isLoggedIn && Array.isArray(customer?.addresses) && customer.addresses.length > 0 && (
+                <div className="space-y-2 pb-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 flex items-center gap-1.5">
+                      <Home size={13} className="text-neutral-900" />
+                      <span>Select Saved Delivery Address:</span>
+                    </span>
+                    <Link to="/profile" className="text-[10px] font-bold uppercase text-neutral-500 hover:text-black hover:underline">
+                      + Manage in Profile
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {customer.addresses.map((addr) => (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => handleSelectSavedAddress(addr)}
+                        className={`p-3 rounded-2xl border text-left text-xs transition-all ${
+                          selectedAddressId === addr.id
+                            ? 'bg-white border-black shadow-xs ring-2 ring-black'
+                            : 'bg-white/80 border-neutral-200 hover:border-neutral-400'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="font-bold text-neutral-900 truncate">{addr.fullName}</p>
+                          {addr.isDefault && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-full shrink-0 ml-1">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-neutral-600 line-clamp-1 mt-0.5">{addr.addressLine1}</p>
+                        <p className="text-[10px] text-neutral-400 font-mono">{addr.city}, {addr.pincode}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">

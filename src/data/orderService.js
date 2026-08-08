@@ -219,6 +219,8 @@ export function createOrder(orderData) {
     total: Number(orderData.total) || Number(orderData.subtotal) || 0,
     paymentMethod: String(orderData.paymentMethod || 'cod'),
     status: String(orderData.status || 'Pending'),
+    createdAt: new Date().toISOString(),
+    timestamp: Date.now(),
     date: String(
       orderData.date ||
         new Date().toLocaleDateString('en-IN', {
@@ -311,26 +313,59 @@ export function calculateOrderAnalytics(orders = []) {
     });
   }
 
-  const parseOrderDate = (dateStr) => {
-    if (!dateStr) return null;
-    const parsed = new Date(dateStr);
-    if (!isNaN(parsed.getTime())) return parsed;
+  const parseOrderDate = (order) => {
+    if (!order) return new Date();
 
-    const match = String(dateStr).match(/(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})/);
-    if (match) {
-      const d = parseInt(match[1], 10);
-      const mStr = match[2];
-      const y = parseInt(match[3], 10);
-      const monthLookup = {
-        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-      };
-      const m = monthLookup[mStr.substring(0, 3).toLowerCase()];
-      if (m !== undefined) {
-        return new Date(y, m, d);
+    if (order.createdAt) {
+      const parsed = new Date(order.createdAt);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    if (order.timestamp) {
+      const parsed = new Date(order.timestamp);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+
+    const dateStr = String(order.date || '').trim();
+    if (!dateStr) return new Date();
+
+    const directParsed = new Date(dateStr);
+    if (!isNaN(directParsed.getTime())) return directParsed;
+
+    const monthLookup = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+    };
+
+    // Match "6 Aug 2026, 04:30 PM" or "8 Aug 2026" or "8-Aug-2026"
+    const match1 = dateStr.match(/(\d{1,2})[\s\-\/]+([A-Za-z]{3,9})[\s\-\/,]+(\d{4})/);
+    if (match1) {
+      const d = parseInt(match1[1], 10);
+      const mStr = match1[2].substring(0, 3).toLowerCase();
+      const y = parseInt(match1[3], 10);
+      if (monthLookup[mStr] !== undefined) {
+        return new Date(y, monthLookup[mStr], d);
       }
     }
-    return null;
+
+    // Match "Aug 8, 2026" or "August 8 2026"
+    const match2 = dateStr.match(/([A-Za-z]{3,9})[\s\-\/]+(\d{1,2})[\s\-\/,]+(\d{4})/);
+    if (match2) {
+      const mStr = match2[1].substring(0, 3).toLowerCase();
+      const d = parseInt(match2[2], 10);
+      const y = parseInt(match2[3], 10);
+      if (monthLookup[mStr] !== undefined) {
+        return new Date(y, monthLookup[mStr], d);
+      }
+    }
+
+    // Match "2026-08-08" or "2026/08/08"
+    const match3 = dateStr.match(/(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+    if (match3) {
+      return new Date(parseInt(match3[1], 10), parseInt(match3[2], 10) - 1, parseInt(match3[3], 10));
+    }
+
+    // Fallback to current date
+    return new Date();
   };
 
   let totalRevenue = 0;
@@ -349,34 +384,31 @@ export function calculateOrderAnalytics(orders = []) {
     else if (status === 'delivered') deliveredOrders++;
     else if (status === 'cancelled') cancelledOrders++;
 
+    const orderDate = parseOrderDate(order);
+    const oYear = orderDate.getFullYear();
+    const oMonth = orderDate.getMonth();
+    const oDay = orderDate.getDate();
+
+    // Map order to rolling monthly chart bucket
+    let chartBucket = monthlyMap.find((b) => b.year === oYear && b.monthIndex === oMonth);
+    if (!chartBucket) {
+      chartBucket = monthlyMap[monthlyMap.length - 1];
+    }
+
+    if (chartBucket) {
+      chartBucket.orders += 1;
+    }
+
     if (status !== 'cancelled') {
       totalRevenue += orderTotal;
       validOrderCount++;
 
-      const orderDate = parseOrderDate(order.date);
-      if (orderDate) {
-        const oYear = orderDate.getFullYear();
-        const oMonth = orderDate.getMonth();
-        const oDay = orderDate.getDate();
+      if (oYear === currentYear && oMonth === currentMonth && oDay === currentDate) {
+        todayRevenue += orderTotal;
+      }
 
-        // Check today's date
-        if (oYear === currentYear && oMonth === currentMonth && oDay === currentDate) {
-          todayRevenue += orderTotal;
-        }
-
-        // Add to rolling monthly chart bucket
-        const chartBucket = monthlyMap.find((b) => b.year === oYear && b.monthIndex === oMonth);
-        if (chartBucket) {
-          chartBucket.revenue += orderTotal;
-          chartBucket.orders += 1;
-        }
-      } else {
-        // Fallback to current month if date unparseable
-        const currentBucket = monthlyMap[monthlyMap.length - 1];
-        if (currentBucket) {
-          currentBucket.revenue += orderTotal;
-          currentBucket.orders += 1;
-        }
+      if (chartBucket) {
+        chartBucket.revenue += orderTotal;
       }
 
       // Aggregate product sales ranking

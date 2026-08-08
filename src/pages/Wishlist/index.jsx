@@ -37,7 +37,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="pt-24 pb-20 bg-white min-h-[85vh]">
+    <div className="pt-28 pb-20 sm:pt-32 bg-white min-h-[85vh]">
       <div className="container mx-auto px-4 md:px-8 max-w-6xl">
         
         {/* Toast Feedback Notification */}
