@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, MapPin, Phone, Menu, X, Heart, ArrowUpRight, Sparkles } from 'lucide-react';
+import { ShoppingBag, MapPin, Phone, Menu, X, Heart, ArrowUpRight, Sparkles, User, LogOut } from 'lucide-react';
 import { InstagramIcon } from '../ui/Icons';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useCustomerAuth } from '../../context/CustomerAuthContext';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, openCart } = useCart();
   const { wishlistCount } = useWishlist();
+  const { customer, isLoggedIn, logout } = useCustomerAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -135,13 +137,41 @@ export default function Navbar() {
               )}
             </button>
 
-            <Link
-              to="/contact"
-              className="hidden md:inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
-            >
-              <span>Visit Store</span>
-              <ArrowUpRight size={14} />
-            </Link>
+            {/* Customer Authentication: Login/Signup vs Profile/Logout */}
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-1.5 pl-1">
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center gap-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 px-3.5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors"
+                  title="My Profile"
+                >
+                  <User size={14} />
+                  <span className="max-w-[80px] truncate">{customer?.name?.split(' ')[0] || 'Profile'}</span>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="p-2 text-neutral-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
+                  title="Logout Customer"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 pl-1">
+                <Link
+                  to="/login"
+                  className="text-xs font-bold uppercase tracking-wider text-neutral-700 hover:text-black px-3 py-2 rounded-full hover:bg-neutral-100 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="bg-[#111111] hover:bg-black text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-xs hover:shadow-md"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Hamburger & Actions */}
@@ -184,6 +214,53 @@ export default function Navbar() {
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="sm:hidden bg-white border-b border-neutral-200 px-6 py-6 space-y-4 shadow-xl animate-fade-in">
+            
+            {/* Customer Authentication (Mobile) */}
+            <div className="pb-3 border-b border-neutral-100">
+              {isLoggedIn ? (
+                <div className="space-y-2">
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-900 px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User size={16} className="text-neutral-700" />
+                      <span>Profile ({customer?.name || 'Account'})</span>
+                    </div>
+                    <ArrowUpRight size={14} />
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full border border-neutral-300 text-neutral-800 text-center py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider hover:bg-neutral-50 transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full bg-[#111111] text-white text-center py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider hover:bg-black transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-col space-y-3 pb-4 border-b border-neutral-100">
               {navLinks.map((link) => (
                 <Link

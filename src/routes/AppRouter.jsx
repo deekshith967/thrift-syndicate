@@ -6,6 +6,9 @@ import CollectionsPage from '../pages/Collections';
 import ProductDetailsPage from '../pages/Product';
 import CheckoutPage from '../pages/Checkout';
 import WishlistPage from '../pages/Wishlist';
+import CustomerLoginPage from '../pages/CustomerAuth/Login';
+import CustomerSignupPage from '../pages/CustomerAuth/Signup';
+import CustomerProfilePage from '../pages/Profile';
 import AdminDashboard from '../pages/Admin';
 import AdminLoginPage from '../pages/Admin/Login';
 import ProtectedRoute from './ProtectedRoute';
@@ -23,6 +26,9 @@ export default function AppRouter() {
           <Route path="products/:productId" element={<ProductDetailsPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="wishlist" element={<WishlistPage />} />
+          <Route path="login" element={<CustomerLoginPage />} />
+          <Route path="signup" element={<CustomerSignupPage />} />
+          <Route path="profile" element={<CustomerProfilePage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
           <Route
             path="admin"
